@@ -54,11 +54,12 @@ CREATE TABLE IF NOT EXISTS students (
 -- ============================
 CREATE TABLE IF NOT EXISTS courses (
   id SERIAL PRIMARY KEY,
-  course_code VARCHAR(20) UNIQUE NOT NULL,
+  course_code VARCHAR(20) NOT NULL,
   course_name VARCHAR(255) NOT NULL,
   major_id INT REFERENCES majors(id) ON DELETE CASCADE,
   academic_year VARCHAR(2) NOT NULL CHECK (academic_year IN ('1','2','3','4')),
-  created_at TIMESTAMP DEFAULT NOW()
+  created_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(course_code, major_id, academic_year)
 );
 
 -- ============================
