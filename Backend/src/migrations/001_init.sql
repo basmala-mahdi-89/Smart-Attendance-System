@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS staff (
   full_name VARCHAR(100) NOT NULL,
   email VARCHAR(100) UNIQUE NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
-  role VARCHAR(20) NOT NULL CHECK (role IN ('doctor', 'engineer', 'head')),
+  role VARCHAR(20) NOT NULL CHECK (role IN ('dean', 'head', 'doctor', 'engineer')),
   major_id INT REFERENCES majors(id) ON DELETE SET NULL,
   created_at TIMESTAMP DEFAULT NOW()
 );
