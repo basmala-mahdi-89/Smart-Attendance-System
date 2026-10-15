@@ -109,3 +109,20 @@ CREATE TABLE IF NOT EXISTS attendance (
   created_at TIMESTAMP DEFAULT NOW(),
   UNIQUE(session_id, student_id)
 );
+
+-- ============================
+-- Invitations Table
+-- ============================
+CREATE TABLE IF NOT EXISTS invitations (
+  id SERIAL PRIMARY KEY,
+  email VARCHAR(100) NOT NULL,
+  national_id VARCHAR(14) NOT NULL,
+  full_name VARCHAR(100) NOT NULL,
+  role VARCHAR(20) NOT NULL CHECK (role IN ('head', 'doctor', 'engineer')),
+  invited_by INT REFERENCES staff(id) ON DELETE SET NULL,
+  major_id INT REFERENCES majors(id) ON DELETE SET NULL,
+  token VARCHAR(255) UNIQUE NOT NULL,
+  status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'expired')),
+  expires_at TIMESTAMP NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);

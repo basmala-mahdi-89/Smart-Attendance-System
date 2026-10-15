@@ -10,9 +10,11 @@ app.use(express.json());
 // Routes
 const authRoutes = require('./routes/authRoutes');
 const deanRoutes = require('./routes/deanRoutes');
+const invitationsRoutes = require('./routes/invitationsRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/dean', deanRoutes);
+app.use('/api/invitations', invitationsRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'Smart Attendance System API is running 🚀' });
