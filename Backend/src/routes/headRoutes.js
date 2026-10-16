@@ -3,6 +3,8 @@ const router = express.Router();
 const headController = require('../controllers/headController');
 const { verifyToken } = require('../middleware/auth');
 const { allowRoles } = require('../middleware/roles');
+const reportsCtrl = require('../controllers/reportsController');
+
 
 // All routes here require Head role
 router.use(verifyToken);
@@ -30,6 +32,11 @@ router.post('/students/:student_id/reject', headController.rejectStudent);
 router.post('/students/:student_id/enroll', headController.enrollStudent);
 router.get('/students/:student_id/enrollments', headController.getStudentEnrollments);
 router.delete('/students/:student_id/enrollments/:course_id', headController.removeEnrollment);
+
+// Reports
+router.get('/courses/:course_id/report', reportsCtrl.headCourseReport);
+router.get('/courses/:course_id/export', reportsCtrl.exportCourseCSV);
+router.get('/major/overview', reportsCtrl.headMajorOverview);
 
 module.exports = router;
 
