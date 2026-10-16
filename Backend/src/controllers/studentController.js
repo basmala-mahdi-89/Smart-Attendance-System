@@ -264,20 +264,39 @@ exports.scanQR = async (req, res) => {
       return res.status(403).json({ message: `Account is ${student.status}` });
     }
 
-    // ====== 4. Device Fingerprint Check ======
-    if (device_fingerprint) {
-      if (!student.device_fingerprint) {
-        // First scan — bind device
-        await pool.query(
-          `UPDATE students SET device_fingerprint = $1 WHERE id = $2`,
-          [device_fingerprint, studentId]
-        );
-      } else if (student.device_fingerprint !== device_fingerprint) {
-        return res.status(403).json({
-          message: 'Device mismatch. This account is bound to another device.'
-        });
-      }
-    }
+// ====== 4. Device Fingerprint Check ======
+if (!device_fingerprint) {
+  return res.status(400).json({ 
+    message: 'device_fingerprint is required' 
+  });
+}
+
+// Check if this device is used by another student
+const deviceOwner = await pool.query(
+  `SELECT id, full_name FROM students 
+   WHERE device_fingerprint = $1 AND id != $2`,
+  [device_fingerprint, studentId]
+);
+
+if (deviceOwner.rows.length > 0) {
+  return res.status(403).json({
+    message: '❌ This device is already registered to another student',
+    bound_to: deviceOwner.rows[0].full_name
+  });
+}
+
+// Check current student's device
+if (!student.device_fingerprint) {
+  // First time — bind device
+  await pool.query(
+    `UPDATE students SET device_fingerprint = $1 WHERE id = $2`,
+    [device_fingerprint, studentId]
+  );
+} else if (student.device_fingerprint !== device_fingerprint) {
+  return res.status(403).json({
+    message: '❌ This account is bound to another device. Contact your Head of Department to reset.'
+  });
+}
 
     // ====== 5. Verify Enrollment ======
     const enrollCheck = await pool.query(
@@ -290,18 +309,24 @@ exports.scanQR = async (req, res) => {
     }
 
     // ====== 6. Check Duplicate ======
-    const dupCheck = await pool.query(
-      `SELECT id, method, created_at FROM attendance 
-       WHERE session_id = $1 AND student_id = $2`,
-      [session_id, studentId]
-    );
+const dupCheck = await pool.query(
+  `SELECT id, method, created_at FROM attendance 
+   WHERE session_id = $1 AND student_id = $2`,
+  [session_id, studentId]
+);
 
-    if (dupCheck.rows.length > 0) {
-      return res.status(400).json({
-        message: 'Attendance already recorded for this session',
-        attendance: dupCheck.rows[0]
-      });
-    }
+if (dupCheck.rows.length > 0) {
+  const existing = dupCheck.rows[0];
+  const methodMsg = existing.method === 'manual' 
+    ? 'You already marked present manually in this session' 
+    : 'You already scanned this session';
+  
+  return res.status(400).json({
+    message: `❌ ${methodMsg}`,
+    method_used: existing.method,
+    marked_at: existing.created_at
+  });
+}
 
     // ====== 7. Record Attendance ======
     const result = await pool.query(

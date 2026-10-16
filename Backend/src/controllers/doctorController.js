@@ -111,7 +111,7 @@ exports.getActiveSession = async (req, res) => {
 
 // ============================
 // Generate Dynamic QR Token
-// ⚠️ Token expires in 15 seconds (يُجدد كل 5-10 ثواني من الفرونت)
+// ⚠️ Token expires in 15 seconds 
 // ============================
 exports.generateQR = async (req, res) => {
   try {
@@ -301,18 +301,24 @@ exports.manualScan = async (req, res) => {
     }
 
     // ====== 5. Check duplicate ======
-    const dupCheck = await pool.query(
-      `SELECT id, method, created_at FROM attendance 
-       WHERE session_id = $1 AND student_id = $2`,
-      [session_id, studentId]
-    );
+const dupCheck = await pool.query(
+  `SELECT id, method, created_at FROM attendance 
+   WHERE session_id = $1 AND student_id = $2`,
+  [session_id, studentId]
+);
 
-    if (dupCheck.rows.length > 0) {
-      return res.status(400).json({
-        message: 'Attendance already recorded',
-        attendance: dupCheck.rows[0]
-      });
-    }
+if (dupCheck.rows.length > 0) {
+  const existing = dupCheck.rows[0];
+  const methodMsg = existing.method === 'qr_scan'
+    ? 'Student already scanned QR in this session'
+    : 'Student already marked manually in this session';
+  
+  return res.status(400).json({
+    message: `❌ ${methodMsg}`,
+    method_used: existing.method,
+    marked_at: existing.created_at
+  });
+}
 
     // ====== 6. Insert ======
     const result = await pool.query(
