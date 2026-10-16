@@ -8,45 +8,55 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-// Verify transporter on startup
-transporter.verify((error, success) => {
-  if (error) {
-    console.error('❌ Email transporter error:', error.message);
-  } else {
-    console.log('✅ Email transporter ready');
-  }
-});
+// Uncomment to verify
+// transporter.verify((error) => {
+//   if (error) console.error('❌ Email error:', error.message);
+//   else console.log('✅ Email ready');
+// });
 
 exports.sendInvitationEmail = async (to, full_name, role, token) => {
   const acceptUrl = `${process.env.FRONTEND_URL}/invite/${token}`;
-  console.log('📧 Preparing email...');
-  console.log('   To:', to);
-  console.log('   Link:', acceptUrl);
 
+  // ══════════════════════════════════════════
+  // ⚠️ TEST MODE: Print to console
+  // ══════════════════════════════════════════
+  console.log('');
+  console.log('════════════════════════════════════════════');
+  console.log('📧 INVITATION EMAIL (TEST MODE)');
+  console.log('════════════════════════════════════════════');
+  console.log('   To:   ', to);
+  console.log('   Name: ', full_name);
+  console.log('   Role: ', role);
+  console.log('   ───────────────────────────────────');
+  console.log('   🔗 ACCEPT LINK:');
+  console.log('   ' + acceptUrl);
+  console.log('   ───────────────────────────────────');
+  console.log('   🔑 TOKEN:');
+  console.log('   ' + token);
+  console.log('════════════════════════════════════════════');
+  console.log('');
+
+  // ══════════════════════════════════════════
+  // ⚠️ Uncomment to actually send email
+  // ══════════════════════════════════════════
+  /*
   const mailOptions = {
     from: `"Smart Attendance" <${process.env.EMAIL_USER}>`,
     to,
-    subject: `Invitation to join Smart Attendance System as ${role}`,
+    subject: `Invitation as ${role}`,
     html: `
       <h2>Hello ${full_name},</h2>
-      <p>You have been invited to join <b>Smart Attendance System</b> as a <b>${role}</b>.</p>
-      <p>Click the link below to accept the invitation and set your password:</p>
-      <a href="${acceptUrl}" style="background:#007bff;color:#fff;padding:10px 20px;text-decoration:none;border-radius:5px;">
-        Accept Invitation
-      </a>
-      <p>Or copy this link:</p>
-      <p>${acceptUrl}</p>
-      <p>This link expires in 7 days.</p>
-      <br/>
-      <p>Regards,<br/>Smart Attendance Team</p>
+      <p>You've been invited as <b>${role}</b>.</p>
+      <p><a href="${acceptUrl}">Accept Invitation</a></p>
+      <p>Or copy: ${acceptUrl}</p>
     `
   };
 
   try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log('✅ Email sent:', info.messageId);
+    await transporter.sendMail(mailOptions);
+    console.log('✅ Email sent to', to);
   } catch (err) {
-    console.error('❌ Send email error:', err.message);
-    throw err;
+    console.error('❌ Email send error:', err.message);
   }
+  */
 };
