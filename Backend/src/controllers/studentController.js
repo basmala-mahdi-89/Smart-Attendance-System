@@ -202,3 +202,237 @@ exports.verifyOTP = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+
+
+// ============================
+// Scan QR (Attendance)
+// ============================
+exports.scanQR = async (req, res) => {
+  try {
+    const studentId = req.user.id;
+    const { qr_token, device_fingerprint } = req.body;
+
+    if (!qr_token) {
+      return res.status(400).json({ message: 'qr_token is required' });
+    }
+
+    // ====== 1. Verify QR Token ======
+    let decoded;
+    try {
+      decoded = jwt.verify(qr_token, process.env.JWT_SECRET);
+    } catch (err) {
+      if (err.name === 'TokenExpiredError') {
+        return res.status(400).json({ message: 'QR code expired. Scan the new one.' });
+      }
+      return res.status(400).json({ message: 'Invalid QR code' });
+    }
+
+    if (decoded.type !== 'attendance_qr') {
+      return res.status(400).json({ message: 'Invalid QR type' });
+    }
+
+    const { session_id, course_id } = decoded;
+
+    // ====== 2. Verify Session Active ======
+    const sessionRes = await pool.query(
+      `SELECT id, course_id, is_active FROM sessions WHERE id = $1`,
+      [session_id]
+    );
+
+    if (sessionRes.rows.length === 0) {
+      return res.status(404).json({ message: 'Session not found' });
+    }
+
+    if (!sessionRes.rows[0].is_active) {
+      return res.status(400).json({ message: 'Session is closed' });
+    }
+
+    // ====== 3. Verify Student Active ======
+    const studentRes = await pool.query(
+      `SELECT id, status, device_fingerprint FROM students WHERE id = $1`,
+      [studentId]
+    );
+
+    if (studentRes.rows.length === 0) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    const student = studentRes.rows[0];
+
+    if (student.status !== 'active') {
+      return res.status(403).json({ message: `Account is ${student.status}` });
+    }
+
+    // ====== 4. Device Fingerprint Check ======
+    if (device_fingerprint) {
+      if (!student.device_fingerprint) {
+        // First scan — bind device
+        await pool.query(
+          `UPDATE students SET device_fingerprint = $1 WHERE id = $2`,
+          [device_fingerprint, studentId]
+        );
+      } else if (student.device_fingerprint !== device_fingerprint) {
+        return res.status(403).json({
+          message: 'Device mismatch. This account is bound to another device.'
+        });
+      }
+    }
+
+    // ====== 5. Verify Enrollment ======
+    const enrollCheck = await pool.query(
+      `SELECT id FROM enrollments WHERE student_id = $1 AND course_id = $2`,
+      [studentId, course_id]
+    );
+
+    if (enrollCheck.rows.length === 0) {
+      return res.status(403).json({ message: 'You are not enrolled in this course' });
+    }
+
+    // ====== 6. Check Duplicate ======
+    const dupCheck = await pool.query(
+      `SELECT id, method, created_at FROM attendance 
+       WHERE session_id = $1 AND student_id = $2`,
+      [session_id, studentId]
+    );
+
+    if (dupCheck.rows.length > 0) {
+      return res.status(400).json({
+        message: 'Attendance already recorded for this session',
+        attendance: dupCheck.rows[0]
+      });
+    }
+
+    // ====== 7. Record Attendance ======
+    const result = await pool.query(
+      `INSERT INTO attendance (session_id, student_id, method)
+       VALUES ($1, $2, 'qr_scan')
+       RETURNING *`,
+      [session_id, studentId]
+    );
+
+    res.json({
+      message: '✅ Attendance recorded successfully',
+      attendance: result.rows[0]
+    });
+  } catch (err) {
+    console.error('scanQR error:', err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// ============================
+// Get My Personal QR (Offline fallback)
+// ============================
+exports.getMyPersonalQR = async (req, res) => {
+  try {
+    const studentId = req.user.id;
+
+    // Generate a signed token with student_id
+    const personalToken = jwt.sign(
+      {
+        student_id: studentId,
+        type: 'personal_qr'
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '365d' }  // صالح سنة
+    );
+
+    // Update personal_qr in DB (for doctor manual scan reference)
+    await pool.query(
+      `UPDATE students SET personal_qr = $1 WHERE id = $2`,
+      [personalToken, studentId]
+    );
+
+    res.json({
+      personal_qr: personalToken,
+      message: 'Show this QR to your doctor if you have no internet'
+    });
+  } catch (err) {
+    console.error('getMyPersonalQR error:', err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// ============================
+// Get My Attendance History
+// ============================
+exports.getMyAttendance = async (req, res) => {
+  try {
+    const studentId = req.user.id;
+
+    const result = await pool.query(
+      `SELECT a.id, a.method, a.created_at,
+              s.id AS session_id, s.session_date, s.start_time,
+              c.id AS course_id, c.course_code, c.course_name
+       FROM attendance a
+       JOIN sessions s ON a.session_id = s.id
+       JOIN courses c ON s.course_id = c.id
+       WHERE a.student_id = $1
+       ORDER BY a.created_at DESC`,
+      [studentId]
+    );
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error('getMyAttendance error:', err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// ============================
+// Get My Courses (Enrolled)
+// ============================
+exports.getMyCourses = async (req, res) => {
+  try {
+    const studentId = req.user.id;
+
+    const result = await pool.query(
+      `SELECT c.id, c.course_code, c.course_name, c.academic_year,
+              m.name AS major_name,
+              (SELECT COUNT(*) FROM sessions s WHERE s.course_id = c.id) AS total_sessions,
+              (SELECT COUNT(*) FROM attendance a 
+               JOIN sessions s ON a.session_id = s.id 
+               WHERE a.student_id = $1 AND s.course_id = c.id) AS attended_sessions
+       FROM enrollments e
+       JOIN courses c ON e.course_id = c.id
+       JOIN majors m ON c.major_id = m.id
+       WHERE e.student_id = $1
+       ORDER BY c.course_code`,
+      [studentId]
+    );
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error('getMyCourses error:', err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// ============================
+// Get My Profile
+// ============================
+exports.getMyProfile = async (req, res) => {
+  try {
+    const studentId = req.user.id;
+
+    const result = await pool.query(
+      `SELECT s.id, s.national_id, s.full_name, s.email, s.phone, 
+              s.academic_year, s.status, s.created_at,
+              m.name AS major_name
+       FROM students s
+       LEFT JOIN majors m ON s.major_id = m.id
+       WHERE s.id = $1`,
+      [studentId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('getMyProfile error:', err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+};

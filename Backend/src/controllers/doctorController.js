@@ -141,7 +141,7 @@ exports.generateQR = async (req, res) => {
         type: 'attendance_qr'
       },
       process.env.JWT_SECRET,
-      { expiresIn: '15s' }  // ⚠️ expires in 15 seconds
+      { expiresIn: '1h' }  // ⚠️ expires in 15 seconds
     );
 
     const expiresAt = new Date(Date.now() + 15 * 1000).toISOString();
@@ -237,13 +237,27 @@ exports.manualScan = async (req, res) => {
   try {
     const doctorId = req.user.id;
     const { session_id } = req.params;
-    const { student_national_id } = req.body;
+    const { personal_qr } = req.body;
 
-    if (!student_national_id) {
-      return res.status(400).json({ message: 'student_national_id is required' });
+    if (!personal_qr) {
+      return res.status(400).json({ message: 'personal_qr is required' });
     }
 
-    // Verify session
+    // ====== 1. Verify personal QR token ======
+    let decoded;
+    try {
+      decoded = jwt.verify(personal_qr, process.env.JWT_SECRET);
+    } catch (err) {
+      return res.status(400).json({ message: 'Invalid personal QR' });
+    }
+
+    if (decoded.type !== 'personal_qr') {
+      return res.status(400).json({ message: 'Invalid QR type' });
+    }
+
+    const studentId = decoded.student_id;
+
+    // ====== 2. Verify session ======
     const sessCheck = await pool.query(
       `SELECT id, course_id, is_active FROM sessions
        WHERE id = $1 AND created_by = $2`,
@@ -260,11 +274,10 @@ exports.manualScan = async (req, res) => {
 
     const courseId = sessCheck.rows[0].course_id;
 
-    // Find student
+    // ====== 3. Verify student ======
     const studentRes = await pool.query(
-      `SELECT s.id, s.full_name, s.status FROM students s
-       WHERE s.national_id = $1`,
-      [student_national_id]
+      `SELECT id, full_name, status FROM students WHERE id = $1`,
+      [studentId]
     );
 
     if (studentRes.rows.length === 0) {
@@ -277,36 +290,40 @@ exports.manualScan = async (req, res) => {
       return res.status(403).json({ message: `Student account is ${student.status}` });
     }
 
-    // Check enrolled
+    // ====== 4. Verify enrollment ======
     const enrollCheck = await pool.query(
       `SELECT id FROM enrollments WHERE student_id = $1 AND course_id = $2`,
-      [student.id, courseId]
+      [studentId, courseId]
     );
 
     if (enrollCheck.rows.length === 0) {
       return res.status(403).json({ message: 'Student not enrolled in this course' });
     }
 
-    // Check duplicate
+    // ====== 5. Check duplicate ======
     const dupCheck = await pool.query(
-      `SELECT id FROM attendance WHERE session_id = $1 AND student_id = $2`,
-      [session_id, student.id]
+      `SELECT id, method, created_at FROM attendance 
+       WHERE session_id = $1 AND student_id = $2`,
+      [session_id, studentId]
     );
 
     if (dupCheck.rows.length > 0) {
-      return res.status(400).json({ message: 'Already marked present' });
+      return res.status(400).json({
+        message: 'Attendance already recorded',
+        attendance: dupCheck.rows[0]
+      });
     }
 
-    // Insert attendance
+    // ====== 6. Insert ======
     const result = await pool.query(
       `INSERT INTO attendance (session_id, student_id, method)
        VALUES ($1, $2, 'manual')
        RETURNING *`,
-      [session_id, student.id]
+      [session_id, studentId]
     );
 
     res.json({
-      message: 'Attendance recorded (manual)',
+      message: '✅ Attendance recorded (manual)',
       attendance: {
         ...result.rows[0],
         full_name: student.full_name
