@@ -20,4 +20,16 @@ router.get('/courses/:course_id', headController.getCourseDetails);
 router.post('/courses/:course_id/staff', headController.assignStaffToCourse);
 router.delete('/courses/:course_id/staff/:staff_id', headController.removeStaffFromCourse);
 
+// Students
+router.get('/students/pending', headController.getPendingStudents);
+router.get('/students', headController.getAllStudents);
+router.post('/students/:student_id/approve', headController.approveStudent);
+router.post('/students/:student_id/reject', headController.rejectStudent);
+
+// Enrollments
+router.post('/students/:student_id/enroll', headController.enrollStudent);
+router.get('/students/:student_id/enrollments', headController.getStudentEnrollments);
+router.delete('/students/:student_id/enrollments/:course_id', headController.removeEnrollment);
+
 module.exports = router;
+

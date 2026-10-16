@@ -270,3 +270,299 @@ exports.getCourseDetails = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+// ============================
+// Get Pending Students (in Head's Major)
+// ============================
+exports.getPendingStudents = async (req, res) => {
+  try {
+    const headId = req.user.id;
+
+    const majorRes = await pool.query(
+      `SELECT id FROM majors WHERE head_staff_id = $1`,
+      [headId]
+    );
+
+    if (majorRes.rows.length === 0) {
+      return res.status(404).json({ message: 'No major assigned to you' });
+    }
+
+    const majorId = majorRes.rows[0].id;
+
+    const result = await pool.query(
+      `SELECT id, national_id, full_name, email, phone, academic_year, status, created_at
+       FROM students
+       WHERE major_id = $1 AND status = 'pending'
+       ORDER BY created_at DESC`,
+      [majorId]
+    );
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error('getPendingStudents error:', err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// ============================
+// Get All Students (in Head's Major)
+// ============================
+exports.getAllStudents = async (req, res) => {
+  try {
+    const headId = req.user.id;
+
+    const majorRes = await pool.query(
+      `SELECT id FROM majors WHERE head_staff_id = $1`,
+      [headId]
+    );
+
+    if (majorRes.rows.length === 0) {
+      return res.status(404).json({ message: 'No major assigned to you' });
+    }
+
+    const majorId = majorRes.rows[0].id;
+
+    const result = await pool.query(
+      `SELECT id, national_id, full_name, email, phone, academic_year, status, created_at
+       FROM students
+       WHERE major_id = $1
+       ORDER BY status, created_at DESC`,
+      [majorId]
+    );
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error('getAllStudents error:', err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// ============================
+// Approve Student
+// ============================
+exports.approveStudent = async (req, res) => {
+  try {
+    const headId = req.user.id;
+    const { student_id } = req.params;
+
+    // Verify student in head's major
+    const check = await pool.query(
+      `SELECT s.id FROM students s
+       JOIN majors m ON s.major_id = m.id
+       WHERE s.id = $1 AND m.head_staff_id = $2`,
+      [student_id, headId]
+    );
+
+    if (check.rows.length === 0) {
+      return res.status(403).json({ message: 'Student not in your major' });
+    }
+
+    const result = await pool.query(
+      `UPDATE students SET status = 'active'
+       WHERE id = $1 AND status = 'pending'
+       RETURNING id, full_name, email, status`,
+      [student_id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(400).json({ message: 'Student not pending' });
+    }
+
+    res.json({ message: 'Student approved', student: result.rows[0] });
+  } catch (err) {
+    console.error('approveStudent error:', err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// ============================
+// Reject Student
+// ============================
+exports.rejectStudent = async (req, res) => {
+  try {
+    const headId = req.user.id;
+    const { student_id } = req.params;
+
+    const check = await pool.query(
+      `SELECT s.id FROM students s
+       JOIN majors m ON s.major_id = m.id
+       WHERE s.id = $1 AND m.head_staff_id = $2`,
+      [student_id, headId]
+    );
+
+    if (check.rows.length === 0) {
+      return res.status(403).json({ message: 'Student not in your major' });
+    }
+
+    const result = await pool.query(
+      `UPDATE students SET status = 'banned'
+       WHERE id = $1 AND status = 'pending'
+       RETURNING id, full_name, email, status`,
+      [student_id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(400).json({ message: 'Student not pending' });
+    }
+
+    res.json({ message: 'Student rejected', student: result.rows[0] });
+  } catch (err) {
+    console.error('rejectStudent error:', err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// ============================
+// Enroll Student in Courses
+// ============================
+exports.enrollStudent = async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const headId = req.user.id;
+    const { student_id } = req.params;
+    const { course_ids } = req.body;
+
+    if (!Array.isArray(course_ids) || course_ids.length === 0) {
+      return res.status(400).json({ message: 'course_ids must be a non-empty array' });
+    }
+
+    // Verify student in head's major
+    const studentCheck = await client.query(
+      `SELECT s.id, s.major_id, s.academic_year FROM students s
+       JOIN majors m ON s.major_id = m.id
+       WHERE s.id = $1 AND m.head_staff_id = $2`,
+      [student_id, headId]
+    );
+
+    if (studentCheck.rows.length === 0) {
+      return res.status(403).json({ message: 'Student not in your major' });
+    }
+
+    const student = studentCheck.rows[0];
+
+    await client.query('BEGIN');
+
+    const enrolled = [];
+    const skipped = [];
+
+    for (const courseId of course_ids) {
+      // Verify course in student's major + year
+      const courseCheck = await client.query(
+        `SELECT id, course_code, academic_year FROM courses
+         WHERE id = $1 AND major_id = $2`,
+        [courseId, student.major_id]
+      );
+
+      if (courseCheck.rows.length === 0) {
+        skipped.push({ course_id: courseId, reason: 'Not in your major' });
+        continue;
+      }
+
+      if (courseCheck.rows[0].academic_year !== student.academic_year) {
+        skipped.push({ course_id: courseId, reason: 'Wrong academic year' });
+        continue;
+      }
+
+      // Insert enrollment
+      try {
+        await client.query(
+          `INSERT INTO enrollments (student_id, course_id) VALUES ($1, $2)`,
+          [student_id, courseId]
+        );
+        enrolled.push(courseCheck.rows[0]);
+      } catch (e) {
+        if (e.code === '23505') {
+          skipped.push({ course_id: courseId, reason: 'Already enrolled' });
+        } else {
+          throw e;
+        }
+      }
+    }
+
+    await client.query('COMMIT');
+
+    res.json({
+      message: 'Enrollment complete',
+      enrolled,
+      skipped
+    });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('enrollStudent error:', err.message);
+    res.status(500).json({ message: 'Server error' });
+  } finally {
+    client.release();
+  }
+};
+
+// ============================
+// Get Student Enrollments
+// ============================
+exports.getStudentEnrollments = async (req, res) => {
+  try {
+    const headId = req.user.id;
+    const { student_id } = req.params;
+
+    // Verify student in head's major
+    const check = await pool.query(
+      `SELECT s.id FROM students s
+       JOIN majors m ON s.major_id = m.id
+       WHERE s.id = $1 AND m.head_staff_id = $2`,
+      [student_id, headId]
+    );
+
+    if (check.rows.length === 0) {
+      return res.status(403).json({ message: 'Student not in your major' });
+    }
+
+    const result = await pool.query(
+      `SELECT c.id, c.course_code, c.course_name, c.academic_year
+       FROM enrollments e
+       JOIN courses c ON e.course_id = c.id
+       WHERE e.student_id = $1
+       ORDER BY c.course_code`,
+      [student_id]
+    );
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error('getStudentEnrollments error:', err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// ============================
+// Remove Student Enrollment
+// ============================
+exports.removeEnrollment = async (req, res) => {
+  try {
+    const headId = req.user.id;
+    const { student_id, course_id } = req.params;
+
+    // Verify student in head's major
+    const check = await pool.query(
+      `SELECT s.id FROM students s
+       JOIN majors m ON s.major_id = m.id
+       WHERE s.id = $1 AND m.head_staff_id = $2`,
+      [student_id, headId]
+    );
+
+    if (check.rows.length === 0) {
+      return res.status(403).json({ message: 'Student not in your major' });
+    }
+
+    const result = await pool.query(
+      `DELETE FROM enrollments WHERE student_id = $1 AND course_id = $2 RETURNING id`,
+      [student_id, course_id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Enrollment not found' });
+    }
+
+    res.json({ message: 'Enrollment removed' });
+  } catch (err) {
+    console.error('removeEnrollment error:', err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
