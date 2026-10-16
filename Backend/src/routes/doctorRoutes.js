@@ -4,6 +4,7 @@ const ctrl = require('../controllers/doctorController');
 const { verifyToken } = require('../middleware/auth');
 const { allowRoles } = require('../middleware/roles');
 const reportsCtrl = require('../controllers/reportsController');
+const warnCtrl = require('../controllers/warningsController');
 
 
 // All routes require Doctor or Engineer
@@ -29,5 +30,12 @@ router.post('/sessions/:session_id/manual-scan', ctrl.manualScan);
 router.get('/courses/:course_id/report', reportsCtrl.doctorCourseReport);
 router.get('/sessions/:session_id/report', reportsCtrl.doctorSessionReport);
 router.get('/courses/:course_id/export', reportsCtrl.exportCourseCSV);
+
+// Absence Limit
+router.put('/courses/:course_id/absence-limit', warnCtrl.setAbsenceLimit);
+router.get('/courses/:course_id/absence-limit', warnCtrl.getAbsenceLimit);
+
+// Warnings
+router.post('/courses/:course_id/send-warnings', warnCtrl.sendWarnings);
 
 module.exports = router;

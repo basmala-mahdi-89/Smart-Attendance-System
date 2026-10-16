@@ -3,6 +3,7 @@ const router = express.Router();
 const ctrl = require('../controllers/studentController');
 const { verifyToken } = require('../middleware/auth');
 const { allowRoles } = require('../middleware/roles');
+const warnCtrl = require('../controllers/warningsController');
 
 // Public routes
 router.post('/register', ctrl.register);
@@ -18,5 +19,8 @@ router.get('/me/courses', ctrl.getMyCourses);
 router.get('/me/attendance', ctrl.getMyAttendance);
 router.get('/me/personal-qr', ctrl.getMyPersonalQR);
 router.post('/scan', ctrl.scanQR);
+
+// Warnings
+router.get('/me/warnings', warnCtrl.getMyWarnings);
 
 module.exports = router;

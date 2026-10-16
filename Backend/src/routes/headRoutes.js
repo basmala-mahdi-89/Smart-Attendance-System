@@ -4,6 +4,7 @@ const headController = require('../controllers/headController');
 const { verifyToken } = require('../middleware/auth');
 const { allowRoles } = require('../middleware/roles');
 const reportsCtrl = require('../controllers/reportsController');
+const warnCtrl = require('../controllers/warningsController');
 
 
 // All routes here require Head role
@@ -37,6 +38,9 @@ router.delete('/students/:student_id/enrollments/:course_id', headController.rem
 router.get('/courses/:course_id/report', reportsCtrl.headCourseReport);
 router.get('/courses/:course_id/export', reportsCtrl.exportCourseCSV);
 router.get('/major/overview', reportsCtrl.headMajorOverview);
+
+// Warnings
+router.get('/warnings', warnCtrl.headViewWarnings);
 
 module.exports = router;
 
