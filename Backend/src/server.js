@@ -12,11 +12,13 @@ const authRoutes = require('./routes/authRoutes');
 const deanRoutes = require('./routes/deanRoutes');
 const invitationsRoutes = require('./routes/invitationsRoutes');
 const headRoutes = require('./routes/headRoutes');
+const studentRoutes = require('./routes/studentRoutes'); // ← جديد
 
 app.use('/api/auth', authRoutes);
 app.use('/api/dean', deanRoutes);
 app.use('/api/invitations', invitationsRoutes);
 app.use('/api/head', headRoutes);
+app.use('/api/students', studentRoutes); // ← جديد
 
 app.get('/', (req, res) => {
   res.json({ message: 'Smart Attendance System API is running 🚀' });
