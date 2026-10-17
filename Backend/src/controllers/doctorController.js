@@ -1,5 +1,6 @@
 const pool = require('../config/db');
 const jwt = require('jsonwebtoken');
+const { getIO } = require('../config/socket');
 
 // ============================
 // Get Doctor's Courses
@@ -321,20 +322,34 @@ if (dupCheck.rows.length > 0) {
 }
 
     // ====== 6. Insert ======
-    const result = await pool.query(
-      `INSERT INTO attendance (session_id, student_id, method)
-       VALUES ($1, $2, 'manual')
-       RETURNING *`,
-      [session_id, studentId]
-    );
+const result = await pool.query(
+  `INSERT INTO attendance (session_id, student_id, method)
+   VALUES ($1, $2, 'manual')
+   RETURNING *`,
+  [session_id, studentId]
+);
 
-    res.json({
-      message: '✅ Attendance recorded (manual)',
-      attendance: {
-        ...result.rows[0],
-        full_name: student.full_name
-      }
-    });
+// ⚡ Emit live update
+try {
+  getIO().to(`session-${session_id}`).emit('attendance-update', {
+    session_id: parseInt(session_id),
+    student_id: student.id,
+    full_name: student.full_name,
+    method: 'manual',
+    at: new Date().toISOString()
+  });
+  console.log('⚡ Emitted attendance-update for session', session_id);
+} catch (socketErr) {
+  console.error('Socket emit error:', socketErr.message);
+}
+
+res.json({
+  message: '✅ Attendance recorded (manual)',
+  attendance: {
+    ...result.rows[0],
+    full_name: student.full_name
+  }
+});
   } catch (err) {
     console.error('manualScan error:', err.message);
     res.status(500).json({ message: 'Server error' });

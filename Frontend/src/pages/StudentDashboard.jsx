@@ -3,32 +3,40 @@ import { useAuth } from '../context/AuthContext';
 import * as studentApi from '../api/students';
 
 export default function StudentDashboard() {
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
   const [profile, setProfile] = useState(null);
   const [courses, setCourses] = useState([]);
   const [warnings, setWarnings] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadData();
-  }, []);
+    let mounted = true;
 
-  const loadData = async () => {
-    try {
-      const [p, c, w] = await Promise.all([
-        studentApi.getMyProfile(),
-        studentApi.getMyCourses(),
-        studentApi.getMyWarnings()
-      ]);
-      setProfile(p);
-      setCourses(c);
-      setWarnings(w);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    const loadData = async () => {
+      try {
+        const [p, c, w] = await Promise.all([
+          studentApi.getMyProfile(),
+          studentApi.getMyCourses(),
+          studentApi.getMyWarnings()
+        ]);
+        if (mounted) {
+          setProfile(p);
+          setCourses(c);
+          setWarnings(w);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    loadData();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   if (loading) return <div>Loading...</div>;
 

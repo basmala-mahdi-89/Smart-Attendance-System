@@ -8,19 +8,25 @@ export default function DeanDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadOverview();
-  }, []);
+    let mounted = true;
 
-  const loadOverview = async () => {
-    try {
-      const { data } = await client.get('/dean/overview');
-      setOverview(data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    const loadOverview = async () => {
+      try {
+        const { data } = await client.get('/dean/overview');
+        if (mounted) setOverview(data);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    loadOverview();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   if (loading) return <div>Loading...</div>;
 

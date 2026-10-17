@@ -3,6 +3,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
+const { validateEgyptianNationalID } = require('../utils/validators');
+const { getIO } = require('../config/socket');
 
 // ============================
 // Email transporter
@@ -35,9 +37,11 @@ exports.register = async (req, res) => {
       return res.status(400).json({ message: 'All fields are required' });
     }
 
-    if (national_id.length !== 14) {
-      return res.status(400).json({ message: 'National ID must be 14 digits' });
-    }
+  if (!validateEgyptianNationalID(national_id)) {
+  return res.status(400).json({ 
+    message: 'Invalid Egyptian National ID. Please check the number.' 
+  });
+}
 
     if (!['1', '2', '3', '4'].includes(academic_year)) {
       return res.status(400).json({ message: 'Academic year must be 1, 2, 3, or 4' });
@@ -329,17 +333,36 @@ if (dupCheck.rows.length > 0) {
 }
 
     // ====== 7. Record Attendance ======
-    const result = await pool.query(
-      `INSERT INTO attendance (session_id, student_id, method)
-       VALUES ($1, $2, 'qr_scan')
-       RETURNING *`,
-      [session_id, studentId]
-    );
+   const result = await pool.query(
+  `INSERT INTO attendance (session_id, student_id, method)
+   VALUES ($1, $2, 'qr_scan')
+   RETURNING *`,
+  [session_id, studentId]
+);
 
-    res.json({
-      message: '✅ Attendance recorded successfully',
-      attendance: result.rows[0]
-    });
+// ⚡ Emit live update
+try {
+  const studentInfo = await pool.query(
+    `SELECT full_name FROM students WHERE id = $1`,
+    [studentId]
+  );
+  getIO().to(`session-${session_id}`).emit('attendance-update', {
+    session_id,
+    student_id: studentId,
+    full_name: studentInfo.rows[0]?.full_name,
+    method: 'qr_scan',
+    at: new Date().toISOString()
+  });
+  console.log('⚡ Emitted attendance-update for session', session_id);
+} catch (socketErr) {
+  console.error('Socket emit error:', socketErr.message);
+}
+
+res.json({
+  message: '✅ Attendance recorded successfully',
+  attendance: result.rows[0]
+});
+
   } catch (err) {
     console.error('scanQR error:', err.message);
     res.status(500).json({ message: 'Server error' });
