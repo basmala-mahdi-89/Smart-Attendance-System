@@ -11,11 +11,11 @@ async function seed() {
       `INSERT INTO staff (national_id, full_name, email, password_hash, role)
        VALUES ($1, $2, $3, $4, 'dean')
        ON CONFLICT (email) DO NOTHING`,
-      ['30708221203485', 'Basmala Mahdi', 'basmala.mahdi.89@gmail.com', password]
+      ['10000000000001', 'Juliana Arthur', 'julianaa.arthur.89@gmail.com', password]
     );
 
     console.log('✅ Dean created');
-    console.log('📧 Email: basmala.mahdi.89@gmail.com');
+    console.log('📧 Email: julianaa.arthur.89@gmail.com');
     console.log('🔑 Password: Dean@12345');
     process.exit(0);
   } catch (err) {
