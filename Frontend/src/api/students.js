@@ -44,3 +44,16 @@ export const scanQR = async (qr_token, device_fingerprint) => {
   const { data } = await client.post('/students/scan', { qr_token, device_fingerprint });
   return data;
 };
+
+// ============================
+// Invitations
+// ============================
+export const getInvitation = async (token) => {
+  const { data } = await client.get(`/invitations/${token}`);
+  return data;
+};
+
+export const acceptInvitation = async (token, password) => {
+  const { data } = await client.post(`/invitations/${token}/accept`, { password });
+  return data;
+};

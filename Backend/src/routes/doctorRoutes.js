@@ -1,41 +1,27 @@
 const express = require('express');
 const router = express.Router();
-const ctrl = require('../controllers/doctorController');
+const doctorController = require('../controllers/doctorController');
 const { verifyToken } = require('../middleware/auth');
 const { allowRoles } = require('../middleware/roles');
-const reportsCtrl = require('../controllers/reportsController');
-const warnCtrl = require('../controllers/warningsController');
 
-
-// All routes require Doctor or Engineer
+// كل Routes هنا محتاجة دكتور أو مهندس أو رئيس قسم
+// ⚡ ضفنا 'head' عشان الـ Head يقدر يفتح محاضرات ويشوف كورساته
 router.use(verifyToken);
-router.use(allowRoles('doctor', 'engineer'));
+router.use(allowRoles('doctor', 'engineer', 'head'));
 
 // Courses
-router.get('/courses', ctrl.getMyCourses);
+router.get('/courses', doctorController.getMyCourses);
 
 // Sessions
-router.post('/sessions', ctrl.startSession);
-router.get('/sessions/course/:course_id/active', ctrl.getActiveSession);
-router.post('/sessions/:session_id/end', ctrl.endSession);
+router.post('/sessions', doctorController.startSession);
+router.get('/sessions/course/:course_id/active', doctorController.getActiveSession);
+router.post('/sessions/:session_id/end', doctorController.endSession);
 
 // QR
-router.get('/sessions/:session_id/qr', ctrl.generateQR);
+router.get('/sessions/:session_id/qr', doctorController.generateQR);
 
 // Attendance
-router.get('/sessions/:session_id/attendance', ctrl.getSessionAttendance);
-router.post('/sessions/:session_id/manual-scan', ctrl.manualScan);
-
-// Reports
-router.get('/courses/:course_id/report', reportsCtrl.doctorCourseReport);
-router.get('/sessions/:session_id/report', reportsCtrl.doctorSessionReport);
-router.get('/courses/:course_id/export', reportsCtrl.exportCourseCSV);
-
-// Absence Limit
-router.put('/courses/:course_id/absence-limit', warnCtrl.setAbsenceLimit);
-router.get('/courses/:course_id/absence-limit', warnCtrl.getAbsenceLimit);
-
-// Warnings
-router.post('/courses/:course_id/send-warnings', warnCtrl.sendWarnings);
+router.get('/sessions/:session_id/attendance', doctorController.getSessionAttendance);
+router.post('/sessions/:session_id/manual-scan', doctorController.manualScan);
 
 module.exports = router;

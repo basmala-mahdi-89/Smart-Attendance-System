@@ -42,6 +42,17 @@ exports.createInvitation = async (req, res) => {
       return res.status(400).json({ message: 'major_id is required for Head invitations' });
     }
 
+    // ⚡ CHECK 1: Does this major already have a Head?
+    if (role === 'head' && major_id) {
+      const majorHasHead = await pool.query(
+        `SELECT id FROM staff WHERE major_id = $1 AND role = 'head'`,
+        [major_id]
+      );
+      if (majorHasHead.rows.length > 0) {
+        return res.status(400).json({ message: 'This major already has a head. Remove the existing head first.' });
+      }
+    }
+
     // Check if email already exists in staff
     const existingStaff = await pool.query(
       `SELECT id FROM staff WHERE email = $1 OR national_id = $2`,
@@ -75,7 +86,8 @@ exports.createInvitation = async (req, res) => {
 
     // ====== Send Email ======
     try {
-      await sendInvitationEmail(email, full_name, role, token);
+      const frontendOrigin = req.headers.origin || process.env.FRONTEND_URL;
+await sendInvitationEmail(email, full_name, role, token, frontendOrigin);
     } catch (emailErr) {
       console.error('Email error:', emailErr.message);
       // Roll back invitation if email fails
@@ -195,6 +207,21 @@ exports.acceptInvitation = async (req, res) => {
       return res.status(400).json({ message: 'Invitation expired' });
     }
 
+    // ⚡ CHECK 2: If role is 'head', check if major already has a head
+    if (invitation.role === 'head' && invitation.major_id) {
+      const existingHead = await client.query(
+        `SELECT id FROM staff WHERE major_id = $1 AND role = 'head'`,
+        [invitation.major_id]
+      );
+      
+      if (existingHead.rows.length > 0) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ 
+          message: 'This major already has a head. Cannot accept invitation.' 
+        });
+      }
+    }
+
     // Hash password
     const password_hash = await bcrypt.hash(password, 10);
 
@@ -210,6 +237,13 @@ exports.acceptInvitation = async (req, res) => {
 
     // If Head → link to major
     if (invitation.role === 'head' && invitation.major_id) {
+      // Update staff major_id
+      await client.query(
+        `UPDATE staff SET major_id = $1 WHERE id = $2`,
+        [invitation.major_id, newStaff.id]
+      );
+      
+      // Link major to head
       await client.query(
         `UPDATE majors SET head_staff_id = $1 WHERE id = $2`,
         [newStaff.id, invitation.major_id]

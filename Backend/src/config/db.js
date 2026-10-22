@@ -7,15 +7,20 @@ const pool = new Pool({
   max: 10,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000,
-  keepAlive: true
 });
 
+// Test connection on startup
 pool.connect()
-  .then(() => console.log('✅ Connected to Neon PostgreSQL'))
+  .then((client) => {
+    console.log('✅ Connected to Neon PostgreSQL');
+    client.release(); // نرجع الاتصال للـ Pool
+  })
   .catch((err) => console.error('❌ DB Connection Error:', err.message));
 
+
 pool.on('error', (err) => {
-  console.error('Unexpected pool error:', err.message);
+  console.error('⚠️ Unexpected error on idle database client:', err.message);
+  
 });
 
 module.exports = pool;

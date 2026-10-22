@@ -22,13 +22,26 @@ exports.getMyCourses = async (req, res) => {
       [doctorId]
     );
 
-    res.json(result.rows);
+    const courses = result.rows;
+
+    // جلب المهندسين لكل كورس
+    for (let i = 0; i < courses.length; i++) {
+      const engRes = await pool.query(
+        `SELECT s.full_name 
+         FROM course_staff cs
+         JOIN staff s ON cs.staff_id = s.id
+         WHERE cs.course_id = $1 AND cs.role_in_course = 'engineer'`,
+        [courses[i].id]
+      );
+      courses[i].engineers = engRes.rows.map(e => e.full_name);
+    }
+
+    res.json(courses);
   } catch (err) {
     console.error('getMyCourses error:', err.message);
     res.status(500).json({ message: 'Server error' });
   }
 };
-
 // ============================
 // Start Session (create)
 // ============================

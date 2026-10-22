@@ -7,6 +7,8 @@ import StudentDashboard from './pages/StudentDashboard';
 import DoctorDashboard from './pages/DoctorDashboard';
 import HeadDashboard from './pages/HeadDashboard';
 import DeanDashboard from './pages/DeanDashboard';
+import PendingStudents from './pages/PendingStudents';
+import AcceptInvitation from './pages/AcceptInvitation';
 
 function App() {
   return (
@@ -15,6 +17,7 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/invite/:token" element={<AcceptInvitation />} />
 
           <Route
             path="/student"
@@ -28,7 +31,7 @@ function App() {
           <Route
             path="/doctor"
             element={
-              <ProtectedRoute allowedRoles={['doctor', 'engineer']}>
+              <ProtectedRoute allowedRoles={['doctor', 'engineer' , 'head']}>
                 <DoctorDashboard />
               </ProtectedRoute>
             }
@@ -42,6 +45,14 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+  path="/head/pending-students"
+  element={
+    <ProtectedRoute allowedRoles={['head']}>
+      <PendingStudents />
+    </ProtectedRoute>
+  }
+/>
 
           <Route
             path="/dean"

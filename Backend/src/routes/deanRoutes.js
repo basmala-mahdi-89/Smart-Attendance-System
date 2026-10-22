@@ -3,9 +3,7 @@ const router = express.Router();
 const deanController = require('../controllers/deanController');
 const { verifyToken } = require('../middleware/auth');
 const { allowRoles } = require('../middleware/roles');
-const reportsCtrl = require('../controllers/reportsController');
 
-// كل Routes هنا محتاجة Dean
 router.use(verifyToken);
 router.use(allowRoles('dean'));
 
@@ -15,7 +13,9 @@ router.get('/majors', deanController.getMajors);
 router.put('/majors/:id', deanController.updateMajor);
 router.delete('/majors/:id', deanController.deleteMajor);
 
-// Reports
-router.get('/overview', reportsCtrl.deanOverview);
-router.get('/overview/export', reportsCtrl.exportDeanOverviewCSV);
+router.post('/heads', deanController.addHead);
+router.get('/heads', deanController.getHeads);
+router.put('/heads/:id', deanController.updateHead);
+router.delete('/heads/:id', deanController.deleteHead);
+
 module.exports = router;
