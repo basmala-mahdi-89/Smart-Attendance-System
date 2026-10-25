@@ -47,90 +47,73 @@ exports.login = async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // Student-specific checks
+// Student-specific checks
 if (userType === 'student') {
-  if (!user.is_verified) {
-    return res.status(403).json({ message: 'Email not verified' });
+  // ⚡ 1. لو الـ Head لسه موافقش، امنعه
+  if (user.status === 'pending') {
+    return res.status(403).json({ message: 'Your account is pending approval by the Head of Department.' });
   }
-
-  if (user.status === 'banned') {
-    return res.status(403).json({
-      message: '🚫 Account banned. Contact your Head of Department.'
-    });
-  }
-
   if (user.status !== 'active') {
     return res.status(403).json({ message: `Account is ${user.status}` });
   }
 
-  // ⚠️ استخدم PostgreSQL للتحقق (بدل JS timezone)
-  const loginCheckRes = await pool.query(
-    `SELECT 
-       last_login_date = CURRENT_DATE AS is_same_day,
-       COALESCE(login_count_today, 0) AS current_count
-     FROM students WHERE id = $1`,
-    [user.id]
-  );
-
-  const { is_same_day, current_count } = loginCheckRes.rows[0];
-
-  console.log('📊 Login Check:', {
-    is_same_day,
-    current_count
-  });
-
-  let newLoginCount = 1;
-
-  if (is_same_day) {
-    newLoginCount = parseInt(current_count) + 1;
-
-    if (newLoginCount > 3) {
-      await pool.query(
-        `UPDATE students SET status = 'banned' WHERE id = $1`,
-        [user.id]
-      );
-      return res.status(403).json({
-        message: '🚫 Too many login attempts today. Account banned.',
-        login_attempts: newLoginCount
-      });
-    }
+  // ⚡ 2. أول تسجيل دخول: هنأكد الإيميل أوتوماتيك (عشان مفيش OTP)
+  if (!user.is_verified) {
+    await pool.query(`UPDATE students SET is_verified = TRUE WHERE id = $1`, [user.id]);
+    user.is_verified = true; // تحديث القيمة في الذاكرة
   }
 
+  // ⚡ 3. التعامل مع الـ Device Fingerprint (شروط الأمان)
   const { device_fingerprint } = req.body;
-
+  
   if (device_fingerprint) {
+    // نشوف هل الموبايل ده متسجل لطالب تاني؟
     const deviceOwner = await pool.query(
-      `SELECT id, full_name FROM students 
-       WHERE device_fingerprint = $1 AND id != $2`,
+      `SELECT id, full_name FROM students WHERE device_fingerprint = $1 AND id != $2`,
       [device_fingerprint, user.id]
     );
 
     if (deviceOwner.rows.length > 0) {
       return res.status(403).json({
-        message: '❌ This device is registered to another student',
+        message: '❌ This device is already registered to another student',
         bound_to: deviceOwner.rows[0].full_name
       });
     }
 
-    await pool.query(
-      `UPDATE students 
-       SET device_fingerprint = $1, 
-           login_count_today = $2, 
-           last_login_date = CURRENT_DATE
-       WHERE id = $3`,
-      [device_fingerprint, newLoginCount, user.id]
-    );
-  } else {
-    await pool.query(
-      `UPDATE students 
-       SET login_count_today = $1, 
-           last_login_date = CURRENT_DATE
-       WHERE id = $2`,
-      [newLoginCount, user.id]
-    );
+    // لو الموبايل جديد أو بتاعه، نحدث الـ Fingerprint بتاعه
+    if (user.device_fingerprint !== device_fingerprint) {
+      await pool.query(
+        `UPDATE students SET device_fingerprint = $1 WHERE id = $2`,
+        [device_fingerprint, user.id]
+      );
+    }
   }
 
-  console.log('✅ Login count updated to:', newLoginCount);
+  // ⚡ 4. نظام الـ Login Limit (3 مرات في اليوم)
+  const today = new Date().toISOString().split('T')[0];
+  const lastDate = user.last_login_date
+    ? new Date(user.last_login_date).toISOString().split('T')[0]
+    : null;
+
+  let newLoginCount = 1;
+
+  if (lastDate === today) {
+    newLoginCount = (user.login_count_today || 0) + 1;
+    if (newLoginCount > 3) {
+      await pool.query(`UPDATE students SET status = 'banned' WHERE id = $1`, [user.id]);
+      return res.status(403).json({
+        message: '🚫 Too many login attempts today. Account banned.'
+      });
+    }
+  }
+
+  // تحديث عدد مرات الدخول
+  await pool.query(
+    `UPDATE students 
+     SET login_count_today = $1, last_login_date = CURRENT_DATE
+     WHERE id = $2`,
+    [newLoginCount, user.id]
+  );
 }
 
     // Generate JWT

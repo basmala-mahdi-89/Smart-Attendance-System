@@ -48,3 +48,30 @@ exports.sendInvitationEmail = async (to, full_name, role, token, frontendUrl) =>
     throw err;
   }
 };
+
+// ============================
+// Send Approval Email to Student
+// ============================
+exports.sendApprovalEmail = async (to, full_name) => {
+  const mailOptions = {
+    from: `"Smart Attendance" <${process.env.EMAIL_USER}>`,
+    to,
+    subject: `Account Approved - Smart Attendance System`,
+    html: `
+      <h2>Hello ${full_name},</h2>
+      <p>Great news! Your account has been <b>approved</b> by the Head of Department.</p>
+      <p>You can now login to the system using your National ID and Password.</p>
+      <p>Please note: For security reasons, your account will be bound to the first device you log in from.</p>
+      <br/>
+      <p>Regards,<br/>Smart Attendance Team</p>
+    `
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log('✅ Approval Email sent to', to);
+  } catch (err) {
+    console.error('❌ Email send error:', err.message);
+    throw err;
+  }
+};

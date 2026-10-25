@@ -72,16 +72,16 @@ exports.createInvitation = async (req, res) => {
     }
 
     // ====== Generate Token ======
-    const token = crypto.randomBytes(32).toString('hex');
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
+       const token = crypto.randomBytes(32).toString('hex');
+  
 
+    // ====== Insert Invitation ======
     // ====== Insert Invitation ======
     const result = await pool.query(
       `INSERT INTO invitations (email, national_id, full_name, role, invited_by, major_id, token, expires_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW() + INTERVAL '7 days') 
        RETURNING id, email, full_name, role, token, expires_at`,
-      [email, national_id, full_name, role, invitedBy, major_id || null, token, expiresAt]
+      [email, national_id, full_name, role, invitedBy, major_id || null, token]
     );
 
     // ====== Send Email ======

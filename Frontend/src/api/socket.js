@@ -1,36 +1,23 @@
-import { io } from 'socket.io-client';
+import { io } from 'socket.io-client'; // ⚡ لاحظ -client هنا
 
-const SOCKET_URL = `http://${window.location.hostname}:5000`;
+const SOCKET_URL = window.location.origin;
+
 let socket = null;
 
 export function connectSocket() {
   if (!socket) {
     socket = io(SOCKET_URL, {
-      transports: ['websocket', 'polling']
+      path: '/socket.io',
+      transports: ['polling', 'websocket']
     });
 
-    socket.on('connect', () => {
-      console.log('🔌 Socket connected:', socket.id);
-    });
-
-    socket.on('disconnect', () => {
-      console.log('❌ Socket disconnected');
-    });
-
-    socket.on('connect_error', (err) => {
-      console.error('Socket connection error:', err.message);
-    });
+    socket.on('connect', () => console.log('🔌 Socket Connected:', socket.id));
+    socket.on('disconnect', () => console.log('❌ Socket Disconnected'));
   }
   return socket;
 }
 
-export function getSocket() {
-  return socket;
-}
-
+export function getSocket() { return socket; }
 export function disconnectSocket() {
-  if (socket) {
-    socket.disconnect();
-    socket = null;
-  }
+  if (socket) { socket.disconnect(); socket = null; }
 }

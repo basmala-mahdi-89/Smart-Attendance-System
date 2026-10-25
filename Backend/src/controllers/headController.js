@@ -1,18 +1,17 @@
-const pool = require('../config/db');
 
 // ============================
-// 1. Get All Staff (doctors + engineers + head himself)
+// Get All Staff (doctors + engineers + ALL heads)
 // ============================
 exports.getStaff = async (req, res) => {
   try {
-    const headId = req.user.id;
+    // بنجيب كل الدكاترة والمهندسين وكل الـ Heads (عشان أي Head يقدر يدرّس)
     const result = await pool.query(
       `SELECT id, full_name, email, national_id, role 
        FROM staff 
-       WHERE role IN ('doctor', 'engineer') OR id = $1
-       ORDER BY role, full_name`,
-      [headId]
+       WHERE role IN ('doctor', 'engineer', 'head')
+       ORDER BY role, full_name`
     );
+    
     res.json(result.rows);
   } catch (err) {
     console.error('getStaff error:', err.message);
@@ -47,8 +46,9 @@ exports.getCourses = async (req, res) => {
     const courses = result.rows;
 
     for (let i = 0; i < courses.length; i++) {
+
       const staffRes = await pool.query(
-        `SELECT cs.id AS assignment_id, s.id AS staff_id, s.full_name, 
+        `SELECT cs.id AS assignment_id, s.id AS staff_id, s.full_name, s.role,
                 cs.role_in_course, cs.is_primary
          FROM course_staff cs
          JOIN staff s ON cs.staff_id = s.id
@@ -203,6 +203,9 @@ exports.getAllStudents = async (req, res) => {
 // ============================
 // 7. Approve Student (with Auto-Enrollment)
 // ============================
+const pool = require('../config/db');
+const { sendApprovalEmail } = require('../utils/emailService');
+
 exports.approveStudent = async (req, res) => {
   const client = await pool.connect();
   try {
@@ -211,12 +214,15 @@ exports.approveStudent = async (req, res) => {
 
     await client.query('BEGIN');
 
+    // ⚡ جبنا الاسم والإيميل هنا عشان نستخدمهم في الإيميل
     const check = await client.query(
-      `SELECT s.id, s.major_id, s.academic_year FROM students s
+      `SELECT s.id, s.major_id, s.academic_year, s.full_name, s.email 
+       FROM students s
        JOIN majors m ON s.major_id = m.id
        WHERE s.id = $1 AND m.head_staff_id = $2`,
       [student_id, headId]
     );
+
     if (check.rows.length === 0) {
       await client.query('ROLLBACK');
       return res.status(403).json({ message: 'Student not in your major' });
@@ -228,11 +234,13 @@ exports.approveStudent = async (req, res) => {
       `UPDATE students SET status = 'active' WHERE id = $1 AND status = 'pending' RETURNING id, full_name, email, status`,
       [student_id]
     );
+
     if (result.rows.length === 0) {
       await client.query('ROLLBACK');
       return res.status(400).json({ message: 'Student not pending' });
     }
 
+    // تسجيل الطالب في الكورسات
     const coursesRes = await client.query(
       `SELECT id FROM courses WHERE major_id = $1 AND academic_year = $2`,
       [student.major_id, student.academic_year]
@@ -246,8 +254,19 @@ exports.approveStudent = async (req, res) => {
       } catch (e) { if (e.code !== '23505') throw e; }
     }
 
+    // ⚡ إرسال الإيميل (لو فشل، الكود هيكمل عادي)
+    try {
+      await sendApprovalEmail(student.email, student.full_name);
+    } catch (emailErr) {
+      console.error('Failed to send approval email:', emailErr.message);
+    }
+
     await client.query('COMMIT');
-    res.json({ message: 'Student approved', student: result.rows[0], enrolled_in_courses: enrolledCount });
+    res.json({ 
+      message: 'Student approved and enrolled. Email sent.', 
+      student: result.rows[0],
+      auto_enrolled_in_courses: enrolledCount
+    });
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('approveStudent error:', err.message);
@@ -256,7 +275,6 @@ exports.approveStudent = async (req, res) => {
     client.release();
   }
 };
-
 // ============================
 // 8. Reject Student
 // ============================

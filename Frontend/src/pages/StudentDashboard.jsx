@@ -9,6 +9,8 @@ export default function StudentDashboard() {
   const [courses, setCourses] = useState([]);
   const [warnings, setWarnings] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // حالة الكاميرا
   const [scanning, setScanning] = useState(false);
   const [scanResult, setScanResult] = useState(null);
   const [scanError, setScanError] = useState('');
@@ -16,7 +18,6 @@ export default function StudentDashboard() {
 
   useEffect(() => {
     let mounted = true;
-
     const loadData = async () => {
       try {
         const [p, c, w] = await Promise.all([
@@ -35,56 +36,44 @@ export default function StudentDashboard() {
         if (mounted) setLoading(false);
       }
     };
-
     loadData();
 
     return () => {
       mounted = false;
-      if (scannerRef.current) {
-        scannerRef.current.clear().catch(() => {});
-      }
+      if (scannerRef.current) scannerRef.current.clear().catch(() => {});
     };
   }, []);
 
+  // ⚡ دالة فتح الكاميرا لمسح QR المحاضرة
   const startScan = () => {
     setScanning(true);
     setScanResult(null);
     setScanError('');
-
     setTimeout(() => {
-      const scanner = new Html5QrcodeScanner(
-        'qr-reader',
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        false
-      );
-
+      const scanner = new Html5QrcodeScanner('qr-reader', { fps: 10, qrbox: { width: 250, height: 250 } }, false);
       scanner.render(
         async (decodedText) => {
           scanner.clear();
           setScanning(false);
           await handleScan(decodedText);
         },
-        (error) => {
-          // silent
-        }
+        () => {}
       );
-
       scannerRef.current = scanner;
     }, 100);
   };
 
   const handleScan = async (qrToken) => {
     try {
-      // Get device fingerprint from localStorage or generate
       let deviceFp = localStorage.getItem('device_fingerprint');
       if (!deviceFp) {
         deviceFp = 'device-' + Math.random().toString(36).substring(2, 15);
         localStorage.setItem('device_fingerprint', deviceFp);
       }
-
       const result = await studentApi.scanQR(qrToken, deviceFp);
       setScanResult(result);
-      // Refresh courses
+      
+      // تحديث الكورسات عشان النسبة تتحدث
       const c = await studentApi.getMyCourses();
       setCourses(c);
     } catch (err) {
@@ -92,81 +81,79 @@ export default function StudentDashboard() {
     }
   };
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return <div style={{ padding: '20px' }}>Loading...</div>;
 
   return (
-    <div>
-      <header>
-        <h1>Student Dashboard</h1>
-        <p>Welcome, {profile?.full_name}</p>
-        <button onClick={logout}>Logout</button>
+    <div style={{ padding: '20px', fontFamily: 'Arial' }}>
+      <header style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+        <div>
+          <h1>Student Dashboard</h1>
+          <p>Welcome, {profile?.full_name}</p>
+        </div>
+        <button onClick={logout} style={{ padding: '10px', cursor: 'pointer' }}>Logout</button>
       </header>
 
-      {/* Scan QR */}
-      <section style={{ border: '2px solid blue', padding: '15px', margin: '15px 0', background: '#f0f8ff' }}>
-        <h2>📷 Scan QR Code</h2>
-
-        {!scanning && (
-          <button onClick={startScan} style={{ background: 'blue', color: 'white', padding: '15px 30px', fontSize: '16px' }}>
-            📷 Open Camera
+      {/* زرار المسح */}
+      <div style={{ marginBottom: '20px' }}>
+        {!scanning ? (
+          <button onClick={startScan} style={{ padding: '15px 30px', background: 'blue', color: 'white', fontSize: '16px', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>
+            📷 Scan Doctor's QR
           </button>
-        )}
-
-        {scanning && (
-          <div>
+        ) : (
+          <div style={{ border: '2px solid blue', padding: '20px', marginBottom: '20px', borderRadius: '8px' }}>
+            <h3>Scanning...</h3>
             <div id="qr-reader" style={{ width: '100%', maxWidth: '500px', margin: '0 auto' }}></div>
-            <button 
-              onClick={() => {
-                if (scannerRef.current) scannerRef.current.clear();
-                setScanning(false);
-              }}
-              style={{ background: 'red', color: 'white', padding: '10px', marginTop: '10px' }}
-            >
+            <button onClick={() => { if (scannerRef.current) scannerRef.current.clear(); setScanning(false); }} style={{ marginTop: '10px', padding: '10px', background: 'red', color: 'white', border: 'none', borderRadius: '5px' }}>
               Cancel
             </button>
           </div>
         )}
+      </div>
 
-        {scanResult && (
-          <div style={{ background: '#d4edda', padding: '15px', marginTop: '15px', borderRadius: '5px' }}>
-            <p>✅ <b>{scanResult.message}</b></p>
-            <p>Attendance ID: {scanResult.attendance.id}</p>
-          </div>
-        )}
+      {/* رسائل النجاح والخطأ */}
+      {scanResult && (
+        <div style={{ background: '#d4edda', padding: '15px', marginBottom: '20px', borderRadius: '5px', border: '1px solid green' }}>
+          <p style={{ margin: 0 }}>✅ <b>{scanResult.message}</b></p>
+        </div>
+      )}
+      {scanError && (
+        <div style={{ background: '#f8d7da', padding: '15px', marginBottom: '20px', borderRadius: '5px', border: '1px solid red' }}>
+          <p style={{ margin: 0 }}>❌ {scanError}</p>
+        </div>
+      )}
 
-        {scanError && (
-          <div style={{ background: '#f8d7da', padding: '15px', marginTop: '15px', borderRadius: '5px' }}>
-            <p>❌ {scanError}</p>
-          </div>
-        )}
-      </section>
-
-      <section>
+      {/* بيانات الطالب */}
+      <section style={{ marginBottom: '30px' }}>
         <h2>My Profile</h2>
         <p>National ID: {profile?.national_id}</p>
-        <p>Email: {profile?.email}</p>
         <p>Major: {profile?.major_name}</p>
         <p>Academic Year: {profile?.academic_year}</p>
       </section>
 
-      <section>
+      {/* الكورسات */}
+      <section style={{ marginBottom: '30px' }}>
         <h2>My Courses ({courses.length})</h2>
         {courses.map(c => (
-          <div key={c.id} style={{ border: '1px solid #ccc', padding: '10px', margin: '5px 0' }}>
+          <div key={c.id} style={{ border: '1px solid #ccc', padding: '15px', margin: '10px 0', borderRadius: '5px', background: '#f9f9f9' }}>
             <h3>{c.course_code} - {c.course_name}</h3>
-            <p>Attended: {c.attended_sessions} / {c.total_sessions}</p>
+            <p>Attended: <b>{c.attended_sessions}</b> / {c.total_sessions} sessions</p>
           </div>
         ))}
       </section>
 
+      {/* الإنذارات */}
       <section>
         <h2>Warnings ({warnings.length})</h2>
-        {warnings.map(w => (
-          <div key={w.id} style={{ border: '1px solid #ccc', padding: '10px', margin: '5px 0' }}>
-            <p>Level {w.level} - {w.course_code}</p>
-            <p>Absence: {w.absence_percentage}%</p>
-          </div>
-        ))}
+        {warnings.length === 0 ? (
+          <p>No warnings. Keep it up! 🌟</p>
+        ) : (
+          warnings.map(w => (
+            <div key={w.id} style={{ border: '1px solid #ccc', padding: '10px', margin: '5px 0', borderRadius: '5px', background: '#fff3cd' }}>
+              <p style={{ margin: 0 }}>⚠️ Level {w.level} Warning - {w.course_code}</p>
+              <p style={{ margin: '5px 0 0 0', fontSize: '14px' }}>Absence: {w.absence_percentage}%</p>
+            </div>
+          ))
+        )}
       </section>
     </div>
   );

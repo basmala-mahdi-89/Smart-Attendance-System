@@ -23,5 +23,7 @@ router.get('/sessions/:session_id/qr', doctorController.generateQR);
 // Attendance
 router.get('/sessions/:session_id/attendance', doctorController.getSessionAttendance);
 router.post('/sessions/:session_id/manual-scan', doctorController.manualScan);
+router.post('/sessions/:session_id/manual-add', doctorController.manualAdd);
+router.get('/active-session', doctorController.getCurrentActiveSession);
 
 module.exports = router;

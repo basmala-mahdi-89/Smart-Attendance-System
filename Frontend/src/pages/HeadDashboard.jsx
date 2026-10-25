@@ -367,26 +367,26 @@ export default function HeadDashboard() {
               </select>
 
               <label>Select Staff Member:</label>
-              <select 
-                value={assignForm.staff_id} 
-                onChange={e => setAssignForm({...assignForm, staff_id: e.target.value})} 
-                required
-                style={{ padding: '8px' }}
-              >
-                <option value="">-- Choose --</option>
-                {assignForm.role_in_course === 'doctor' 
-                  ? doctors.map(d => (
-                      <option key={d.id} value={d.id}>
-                        Dr. {d.full_name} {d.id === user.id ? '(You)' : ''}
-                      </option>
-                    ))
-                  : engineers.map(e => (
-                      <option key={e.id} value={e.id}>
-                        Eng. {e.full_name}
-                      </option>
-                    ))
-                }
-              </select>
+<select 
+  value={assignForm.staff_id} 
+  onChange={e => setAssignForm({...assignForm, staff_id: e.target.value})} 
+  required
+  style={{ padding: '8px' }}
+>
+  <option value="">-- Choose --</option>
+  {assignForm.role_in_course === 'doctor' 
+    ? doctors.map(d => (
+        <option key={d.id} value={d.id}>
+          Dr. {d.full_name} {d.role === 'head' ? '(Head)' : ''} {d.id === user.id ? '(You)' : ''}
+        </option>
+      ))
+    : engineers.map(e => (
+        <option key={e.id} value={e.id}>
+          Eng. {e.full_name}
+        </option>
+      ))
+  }
+</select>
 
               {assignForm.role_in_course === 'doctor' && (
                 <label>
