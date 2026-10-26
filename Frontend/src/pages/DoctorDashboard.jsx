@@ -111,7 +111,7 @@ export default function DoctorDashboard() {
     }
   };
 
-  // ⚡ الإضافة اليدوية بآخر 5 أرقام بس
+  // ⚡ الإضافة اليدوية بآخر 5 أرقام
   const handleManualAdd = async (e) => {
     e.preventDefault();
     setManualResult(null);
@@ -137,6 +137,11 @@ export default function DoctorDashboard() {
             ⚙️ Head Management
           </button>
         )}
+        
+        <button onClick={() => navigate('/doctor/reports')} style={{ background: 'teal', color: 'white', padding: '8px', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+          📊 Reports
+        </button>
+        
         <button onClick={logout} style={{ padding: '8px', cursor: 'pointer' }}>Logout</button>
       </header>
 

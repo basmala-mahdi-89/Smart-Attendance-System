@@ -9,6 +9,7 @@ import HeadDashboard from './pages/HeadDashboard';
 import DeanDashboard from './pages/DeanDashboard';
 import PendingStudents from './pages/PendingStudents';
 import AcceptInvitation from './pages/AcceptInvitation';
+import DoctorReports from './pages/DoctorReports';
 
 function App() {
   return (
@@ -36,6 +37,15 @@ function App() {
               </ProtectedRoute>
             }
           />
+          
+<Route
+  path="/doctor/reports"
+  element={
+    <ProtectedRoute allowedRoles={['doctor', 'engineer', 'head']}>
+      <DoctorReports />
+    </ProtectedRoute>
+  }
+/>
 
           <Route
             path="/head"
