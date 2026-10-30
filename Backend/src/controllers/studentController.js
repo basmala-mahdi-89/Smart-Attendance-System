@@ -110,17 +110,22 @@ exports.scanQR = async (req, res) => {
   try {
     const studentId = req.user.id;
     const { qr_token, device_fingerprint } = req.body;
-    if (!qr_token) return res.status(400).json({ message: 'qr_token is required' });
+    if (!qr_token) return res.status(400).json({ message: 'QR token is required' });
 
     let decoded;
     try {
       decoded = jwt.verify(qr_token, process.env.JWT_SECRET);
     } catch (err) {
-      return res.status(400).json({ message: err.name === 'TokenExpiredError' ? 'QR code expired. Scan the new one.' : 'Invalid QR code' });
+      return res.status(400).json({ message: 'Invalid or expired QR code' });
     }
-    if (decoded.type !== 'attendance_qr') return res.status(400).json({ message: 'Invalid QR type' });
+
+    // ⚡ التحقق من نوع الكيو آر (لازم يطابق اللي الدكتور بيبعته)
+    if (decoded.type !== 'attendance_qr') {
+      return res.status(400).json({ message: 'Invalid QR code type. Please scan the Session QR.' });
+    }
 
     const { session_id, course_id } = decoded;
+
     const sessionRes = await pool.query(`SELECT id, course_id, is_active FROM sessions WHERE id = $1`, [session_id]);
     if (sessionRes.rows.length === 0) return res.status(404).json({ message: 'Session not found' });
     if (!sessionRes.rows[0].is_active) return res.status(400).json({ message: 'Session is closed' });
@@ -129,6 +134,7 @@ exports.scanQR = async (req, res) => {
     const student = studentRes.rows[0];
     if (student.status !== 'active') return res.status(403).json({ message: `Account is ${student.status}` });
 
+    // ⚡ التحقق من بصمة الجهاز
     if (device_fingerprint && student.device_fingerprint) {
       if (student.device_fingerprint !== device_fingerprint) {
         return res.status(403).json({ message: '❌ Wrong device. Login from your registered device.' });
@@ -140,16 +146,15 @@ exports.scanQR = async (req, res) => {
     const enrollCheck = await pool.query(`SELECT id FROM enrollments WHERE student_id = $1 AND course_id = $2`, [studentId, course_id]);
     if (enrollCheck.rows.length === 0) return res.status(403).json({ message: 'You are not enrolled in this course' });
 
-    const dupCheck = await pool.query(`SELECT id, method, created_at FROM attendance WHERE session_id = $1 AND student_id = $2`, [session_id, studentId]);
+    const dupCheck = await pool.query(`SELECT id, method FROM attendance WHERE session_id = $1 AND student_id = $2`, [session_id, studentId]);
     if (dupCheck.rows.length > 0) {
-      const existing = dupCheck.rows[0];
-      const methodMsg = existing.method === 'manual' ? 'You already marked present manually in this session' : 'You already scanned this session';
-      return res.status(400).json({ message: `❌ ${methodMsg}`, method_used: existing.method, marked_at: existing.created_at });
+      return res.status(400).json({ message: '❌ You already marked present for this session' });
     }
 
+    // ⚡ استخدام qr_scan عشان يطابق الداتابيز
     const result = await pool.query(`INSERT INTO attendance (session_id, student_id, method) VALUES ($1, $2, 'qr_scan') RETURNING *`, [session_id, studentId]);
 
-    // ⚡ إرسال التحديث
+    // ⚡ إرسال التحديث للدكتور
     const io = req.app.get('io');
     if (io) {
       io.to(`session-${session_id}`).emit('attendance-update', {
@@ -161,7 +166,7 @@ exports.scanQR = async (req, res) => {
       });
     }
 
-    res.json({ message: '✅ Attendance recorded successfully', attendance: result.rows[0] });
+    res.json({ message: '✅ Attendance marked successfully', attendance: result.rows[0] });
   } catch (err) {
     console.error('scanQR error:', err.message);
     res.status(500).json({ message: 'Server error' });
@@ -172,6 +177,7 @@ exports.getMyPersonalQR = async (req, res) => {
   try {
     const studentId = req.user.id;
     const studentRes = await pool.query(`SELECT totp_secret FROM students WHERE id = $1`, [studentId]);
+    
     let secret = studentRes.rows[0].totp_secret;
 
     if (!secret) {
@@ -179,6 +185,7 @@ exports.getMyPersonalQR = async (req, res) => {
       secret = newSecret.base32;
       await pool.query(`UPDATE students SET totp_secret = $1 WHERE id = $2`, [secret, studentId]);
     }
+
     res.json({ totp_secret: secret, message: 'Use this secret to generate offline OTP' });
   } catch (err) {
     console.error('getMyPersonalQR error:', err.message);
@@ -202,14 +209,26 @@ exports.getMyAttendance = async (req, res) => {
 
 exports.getMyCourses = async (req, res) => {
   try {
+    const studentId = req.user.id;
     const result = await pool.query(
-      `SELECT c.id, c.course_code, c.course_name, c.academic_year, m.name AS major_name,
+      `SELECT c.id, c.course_code, c.course_name, c.academic_year, c.term, m.name AS major_name,
               (SELECT COUNT(*) FROM sessions s WHERE s.course_id = c.id) AS total_sessions,
               (SELECT COUNT(*) FROM attendance a JOIN sessions s ON a.session_id = s.id WHERE a.student_id = $1 AND s.course_id = c.id) AS attended_sessions
-       FROM enrollments e JOIN courses c ON e.course_id = c.id JOIN majors m ON c.major_id = m.id
-       WHERE e.student_id = $1 ORDER BY c.course_code`, [req.user.id]
+       FROM enrollments e 
+       JOIN courses c ON e.course_id = c.id 
+       JOIN majors m ON c.major_id = m.id
+       WHERE e.student_id = $1 AND c.term = m.current_term
+       ORDER BY c.course_code`, [studentId]
     );
-    res.json(result.rows);
+    
+    // ⚡ بنجيب الترم الحالي من تخصص الطالب مباشرة
+    const majorRes = await pool.query(
+      `SELECT m.current_term FROM students s JOIN majors m ON s.major_id = m.id WHERE s.id = $1`,
+      [studentId]
+    );
+    const current_term = majorRes.rows[0]?.current_term || '1';
+    
+    res.json({ courses: result.rows, current_term });
   } catch (err) {
     console.error('getMyCourses error:', err.message);
     res.status(500).json({ message: 'Server error' });

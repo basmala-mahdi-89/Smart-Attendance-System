@@ -38,13 +38,19 @@ exports.login = async (req, res) => {
     }
 
     if (!user) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(401).json({ message: 'Invalid Username' });
     }
 
     // Check password
     const isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(401).json({ message: 'Invalid Password' });
+    }
+
+    if (userType === 'staff') {
+      if (user.status === 'banned') {
+        return res.status(403).json({ message: '🚫 Your account has been blocked by the Dean.' });
+      }
     }
 
     // Student-specific checks

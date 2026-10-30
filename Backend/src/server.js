@@ -8,7 +8,10 @@ const app = express();
 const server = http.createServer(app);
 const PORT = process.env.PORT || 5000;
 
-app.use(cors({ origin: '*' }));
+app.use(cors({
+  origin: true, // ⚡ بيسمح لأي IP محلي أو تونيل إنه يتصل
+  credentials: true
+}));
 app.use(express.json());
 
 // Routes
@@ -30,11 +33,9 @@ app.get('/', (req, res) => {
   res.json({ message: 'Smart Attendance System API is running 🚀' });
 });
 
-// ⚡ Initialize Socket and attach to app
 const io = initSocket(server);
-app.set('io', io); // ⚡ بنحفظ السوكت هنا
+app.set('io', io);
 
-// Start Server
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   console.log(`🔌 Socket.IO ready`);
@@ -43,7 +44,7 @@ server.listen(PORT, '0.0.0.0', () => {
   for (const name of Object.keys(interfaces)) {
     for (const iface of interfaces[name]) {
       if (iface.family === 'IPv4' && !iface.internal) {
-        console.log(`📱 Network: http://${iface.address}:${PORT}`);
+        console.log(`📱 Network: https://${iface.address}:5173`); // ⚡ كتبنا https عشان الكاميرا
       }
     }
   }

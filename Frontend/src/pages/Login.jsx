@@ -16,14 +16,24 @@ export default function Login() {
     setError('');
     try {
       const user = await login(national_id, password);
-      navigate(`/${user.role}`);
+      
+      // ⚡ توجيه كل Role للصفحة بتاعته
+      if (user.role === 'engineer') {
+        navigate('/engineer');
+      } else if (user.role === 'doctor' || user.role === 'head') {
+        navigate('/doctor');
+      } else if (user.role === 'dean') {
+        navigate('/dean');
+      } else {
+        navigate('/student');
+      }
+      
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed');
     } finally {
       setLoading(false);
     }
   };
-
   return (
     <div>
       <h1>Login</h1>

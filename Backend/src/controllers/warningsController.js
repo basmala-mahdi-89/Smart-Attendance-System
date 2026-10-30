@@ -1,247 +1,105 @@
 const pool = require('../config/db');
 const nodemailer = require('nodemailer');
 
-// ⚠️ TEST MODE: يطبع في Terminal بدل إرسال
-const TEST_MODE = true;
-
 const transporter = nodemailer.createTransport({
   service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  }
+  auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
 });
 
-// ============================
-// Doctor: Set Absence Limit
-// ============================
-exports.setAbsenceLimit = async (req, res) => {
-  try {
-    const doctorId = req.user.id;
-    const { course_id } = req.params;
-    const { max_absence_percentage } = req.body;
-
-    if (max_absence_percentage === undefined || max_absence_percentage < 0 || max_absence_percentage > 100) {
-      return res.status(400).json({ message: 'max_absence_percentage must be between 0 and 100' });
-    }
-
-    // Verify doctor on this course
-    const check = await pool.query(
-      `SELECT id FROM course_staff WHERE course_id = $1 AND staff_id = $2`,
-      [course_id, doctorId]
-    );
-
-    if (check.rows.length === 0) {
-      return res.status(403).json({ message: 'Course not assigned to you' });
-    }
-
-    await pool.query(
-      `UPDATE courses SET max_absence_percentage = $1 WHERE id = $2`,
-      [max_absence_percentage, course_id]
-    );
-
-    res.json({ 
-      message: 'Absence limit updated',
-      max_absence_percentage 
-    });
-  } catch (err) {
-    console.error('setAbsenceLimit error:', err.message);
-    res.status(500).json({ message: 'Server error' });
-  }
-};
-
-// ============================
-// Doctor: Get Absence Limit
-// ============================
-exports.getAbsenceLimit = async (req, res) => {
-  try {
-    const doctorId = req.user.id;
-    const { course_id } = req.params;
-
-    const check = await pool.query(
-      `SELECT c.id, c.course_code, c.max_absence_percentage
-       FROM courses c
-       JOIN course_staff cs ON cs.course_id = c.id
-       WHERE c.id = $1 AND cs.staff_id = $2`,
-      [course_id, doctorId]
-    );
-
-    if (check.rows.length === 0) {
-      return res.status(403).json({ message: 'Course not assigned to you' });
-    }
-
-    res.json(check.rows[0]);
-  } catch (err) {
-    console.error('getAbsenceLimit error:', err.message);
-    res.status(500).json({ message: 'Server error' });
-  }
-};
-
-// ============================
-// Doctor: Send Warnings (Manual)
-// ============================
 exports.sendWarnings = async (req, res) => {
   try {
     const doctorId = req.user.id;
     const { course_id } = req.params;
+    const { student_ids } = req.body; 
 
-    // Verify doctor on this course + get limit
+    if (!student_ids || student_ids.length === 0) {
+      return res.status(400).json({ message: 'Please select at least one student.' });
+    }
+
+    // 1. Get Course Details & Limit (بيشتغل للدكتور والمهندس)
     const courseRes = await pool.query(
       `SELECT c.id, c.course_code, c.course_name, c.max_absence_percentage
-       FROM courses c
-       JOIN course_staff cs ON cs.course_id = c.id
+       FROM courses c JOIN course_staff cs ON cs.course_id = c.id
        WHERE c.id = $1 AND cs.staff_id = $2`,
       [course_id, doctorId]
     );
-
-    if (courseRes.rows.length === 0) {
-      return res.status(403).json({ message: 'Course not assigned to you' });
-    }
+    
+    if (courseRes.rows.length === 0) return res.status(403).json({ message: 'Access denied. You are not assigned to this course.' });
 
     const course = courseRes.rows[0];
-    const maxAllowed = parseFloat(course.max_absence_percentage);
+    const maxAllowed = parseFloat(course.max_absence_percentage || 25);
 
-    // Total sessions
+    // 2. Total Sessions
     const sessRes = await pool.query(
-      `SELECT COUNT(*) AS total FROM sessions WHERE course_id = $1`,
-      [course_id]
+      `SELECT COUNT(*) AS total FROM sessions WHERE course_id = $1 AND is_active = FALSE`, [course_id]
     );
     const totalSessions = parseInt(sessRes.rows[0].total);
+    
+    if (totalSessions === 0) return res.json({ message: 'No lectures held yet.', warnings_sent: [] });
 
-    if (totalSessions === 0) {
-      return res.json({ 
-        message: 'No sessions yet',
-        total_sessions: 0,
-        warnings_sent: []
-      });
-    }
+    const warningsSent = [];
+    const skipped = [];
 
-    // Students with attendance
-    const studentsRes = await pool.query(
-      `SELECT 
-         s.id AS student_id,
-         s.full_name,
-         s.email,
-         s.national_id,
-         COUNT(DISTINCT a.session_id) AS attended
-       FROM enrollments e
-       JOIN students s ON e.student_id = s.id
-       LEFT JOIN attendance a ON a.student_id = s.id 
-         AND a.session_id IN (SELECT id FROM sessions WHERE course_id = $1)
-       WHERE e.course_id = $1
-       GROUP BY s.id, s.full_name, s.email, s.national_id`,
-      [course_id]
-    );
+    // 3. Loop over SELECTED students
+    for (const studentId of student_ids) {
+      const studentRes = await pool.query(
+        `SELECT s.id, s.full_name, s.email, COUNT(DISTINCT a.session_id) AS attended
+         FROM students s
+         LEFT JOIN attendance a ON a.student_id = s.id AND a.session_id IN (SELECT id FROM sessions WHERE course_id = $1 AND is_active = FALSE)
+         WHERE s.id = $2
+         GROUP BY s.id, s.full_name, s.email`,
+        [course_id, studentId]
+      );
 
-    const results = {
-      course: {
-        id: course.id,
-        course_code: course.course_code,
-        course_name: course.course_name,
-        max_absence_percentage: maxAllowed
-      },
-      total_sessions: totalSessions,
-      total_students: studentsRes.rows.length,
-      warnings_sent: [],
-      skipped: []
-    };
-
-    for (const s of studentsRes.rows) {
+      if (studentRes.rows.length === 0) continue;
+      const s = studentRes.rows[0];
       const attended = parseInt(s.attended);
       const absencePct = ((totalSessions - attended) / totalSessions) * 100;
 
-      // Check if exceeds limit
-      if (absencePct <= maxAllowed) {
-        continue; // تحت الحد
-      }
-
-      const exceededBy = absencePct - maxAllowed;
-
-      // Determine level
-      let level;
-      if (exceededBy > 15) {
-        level = 2; // Final Warning
-      } else {
-        level = 1; // Warning
-      }
+      const level = (absencePct > maxAllowed + 15) ? 2 : 1;
 
       // Check if already sent
       const existing = await pool.query(
-        `SELECT id FROM warnings 
-         WHERE student_id = $1 AND course_id = $2 AND level = $3`,
-        [s.student_id, course_id, level]
+        `SELECT id FROM warnings WHERE student_id = $1 AND course_id = $2 AND level = $3`,
+        [s.id, course_id, level]
       );
 
       if (existing.rows.length > 0) {
-        results.skipped.push({
-          student_id: s.student_id,
-          full_name: s.full_name,
-          level,
-          reason: 'Already sent'
-        });
+        skipped.push({ student: s.full_name, reason: 'Already sent this level' });
         continue;
       }
 
-      // Insert warning
+      // Insert Warning
       await pool.query(
-        `INSERT INTO warnings (student_id, course_id, level, absence_percentage, max_allowed)
-         VALUES ($1, $2, $3, $4, $5)`,
-        [s.student_id, course_id, level, absencePct, maxAllowed]
+        `INSERT INTO warnings (student_id, course_id, level, absence_percentage, max_allowed) VALUES ($1, $2, $3, $4, $5)`,
+        [s.id, course_id, level, absencePct, maxAllowed]
       );
 
-      // Send email (TEST MODE)
-      const levelText = level === 1 ? '⚠️ Warning' : '🚨 Final Warning';
-      
-      if (TEST_MODE) {
-        console.log('');
-        console.log('════════════════════════════════════════');
-        console.log(`${levelText} EMAIL (TEST MODE)`);
-        console.log('════════════════════════════════════════');
-        console.log('   To:      ', s.email);
-        console.log('   Student: ', s.full_name);
-        console.log('   Course:  ', course.course_code, '-', course.course_name);
-        console.log('   Absence: ', absencePct.toFixed(1) + '%');
-        console.log('   Allowed: ', maxAllowed + '%');
-        console.log('   Level:   ', level);
-        console.log('════════════════════════════════════════');
-      } else {
-        try {
-          await transporter.sendMail({
-            from: `"Smart Attendance" <${process.env.EMAIL_USER}>`,
-            to: s.email,
-            subject: `${levelText} - ${course.course_code}`,
-            html: `
-              <h2>${levelText}</h2>
-              <p>Dear ${s.full_name},</p>
-              <p>Your attendance in <b>${course.course_code} - ${course.course_name}</b> has exceeded the allowed limit.</p>
-              <ul>
-                <li>Total Sessions: <b>${totalSessions}</b></li>
-                <li>Attended: <b>${attended}</b></li>
-                <li>Absence: <b>${absencePct.toFixed(1)}%</b></li>
-                <li>Max Allowed: <b>${maxAllowed}%</b></li>
-              </ul>
-              <p>Please improve your attendance.</p>
-              <p>Regards,<br/>Smart Attendance System</p>
-            `
-          });
-        } catch (emailErr) {
-          console.error('Email error:', emailErr.message);
-        }
-      }
+      // Send Email
+      try {
+        await transporter.sendMail({
+          from: `"Smart Attendance" <${process.env.EMAIL_USER}>`,
+          to: s.email,
+          subject: `⚠️ Warning - Absence in ${course.course_code}`,
+          html: `
+            <h2>Warning Level ${level}</h2>
+            <p>Dear ${s.full_name},</p>
+            <p>You have been issued a warning in <b>${course.course_code} - ${course.course_name}</b>.</p>
+            <ul>
+              <li>Total Lectures: ${totalSessions}</li>
+              <li>Attended: ${attended}</li>
+              <li>Your Absence: <b>${absencePct.toFixed(1)}%</b></li>
+              <li>Max Allowed: <b>${maxAllowed}%</b></li>
+            </ul>
+            <p>Please contact your doctor immediately.</p>
+          `
+        });
+      } catch (err) { console.error('Email error:', err.message); }
 
-      results.warnings_sent.push({
-        student_id: s.student_id,
-        full_name: s.full_name,
-        level,
-        absence_percentage: parseFloat(absencePct.toFixed(2)),
-        max_allowed: maxAllowed
-      });
+      warningsSent.push({ student: s.full_name, level, absence: absencePct.toFixed(1) });
     }
 
-    res.json({
-      message: `Warnings sent: ${results.warnings_sent.length}, Skipped: ${results.skipped.length}`,
-      ...results
-    });
+    res.json({ message: `Sent ${warningsSent.length} warnings.`, warnings_sent: warningsSent, skipped });
   } catch (err) {
     console.error('sendWarnings error:', err.message);
     res.status(500).json({ message: 'Server error' });
@@ -253,18 +111,15 @@ exports.sendWarnings = async (req, res) => {
 // ============================
 exports.getMyWarnings = async (req, res) => {
   try {
-    const studentId = req.user.id;
-
     const result = await pool.query(
-      `SELECT w.id, w.level, w.absence_percentage, w.max_allowed, w.sent_at,
-              c.course_code, c.course_name
+      `SELECT w.id, w.level, w.absence_percentage, w.max_allowed, w.sent_at, 
+              c.id AS course_id, c.course_code, c.course_name
        FROM warnings w
        JOIN courses c ON w.course_id = c.id
        WHERE w.student_id = $1
        ORDER BY w.sent_at DESC`,
-      [studentId]
+      [req.user.id]
     );
-
     res.json(result.rows);
   } catch (err) {
     console.error('getMyWarnings error:', err.message);
@@ -273,36 +128,45 @@ exports.getMyWarnings = async (req, res) => {
 };
 
 // ============================
-// Head: View All Warnings in Major
+// DEAN: Send Custom Warning to Staff
 // ============================
-exports.headViewWarnings = async (req, res) => {
+exports.sendStaffWarning = async (req, res) => {
   try {
-    const headId = req.user.id;
+    const { staff_ids, message } = req.body;
 
-    const majorRes = await pool.query(
-      `SELECT id FROM majors WHERE head_staff_id = $1`,
-      [headId]
-    );
-
-    if (majorRes.rows.length === 0) {
-      return res.status(404).json({ message: 'No major assigned' });
+    if (!staff_ids || staff_ids.length === 0 || !message) {
+      return res.status(400).json({ message: 'Select staff and write a message' });
     }
 
-    const result = await pool.query(
-      `SELECT w.id, w.level, w.absence_percentage, w.max_allowed, w.sent_at,
-              s.full_name AS student_name, s.national_id, s.email,
-              c.course_code, c.course_name
-       FROM warnings w
-       JOIN students s ON w.student_id = s.id
-       JOIN courses c ON w.course_id = c.id
-       WHERE c.major_id = $1
-       ORDER BY w.sent_at DESC`,
-      [majorRes.rows[0].id]
+    // جلب إيميلات الدكاترة
+    const staffRes = await pool.query(
+      `SELECT id, full_name, email FROM staff WHERE id = ANY($1::int[])`,
+      [staff_ids]
     );
 
-    res.json(result.rows);
+    let sentCount = 0;
+    for (const staff of staffRes.rows) {
+      try {
+        await transporter.sendMail({
+          from: `"Dean of Faculty" <${process.env.EMAIL_USER}>`,
+          to: staff.email,
+          subject: `⚠️ Important Notice from the Dean`,
+          html: `
+            <h2>Hello Dr. ${staff.full_name},</h2>
+            <p style="white-space: pre-wrap;">${message}</p>
+            <br/>
+            <p>Regards,<br/>Dean's Office</p>
+          `
+        });
+        sentCount++;
+      } catch (err) {
+        console.error(`Failed to send to ${staff.email}:`, err.message);
+      }
+    }
+
+    res.json({ message: `Warning sent to ${sentCount} staff member(s).` });
   } catch (err) {
-    console.error('headViewWarnings error:', err.message);
+    console.error('sendStaffWarning error:', err.message);
     res.status(500).json({ message: 'Server error' });
   }
 };

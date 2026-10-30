@@ -1,5 +1,8 @@
 import client from './client';
 
+// ============================
+// Auth & Registration
+// ============================
 export const register = async (studentData) => {
   const { data } = await client.post('/students/register', studentData);
   return data;
@@ -15,6 +18,9 @@ export const verifyOTP = async (national_id, otp) => {
   return data;
 };
 
+// ============================
+// Student Profile & Dashboard
+// ============================
 export const getMyProfile = async () => {
   const { data } = await client.get('/students/me');
   return data;
@@ -35,6 +41,9 @@ export const getMyWarnings = async () => {
   return data;
 };
 
+// ============================
+// QR & Attendance
+// ============================
 export const getMyPersonalQR = async () => {
   const { data } = await client.get('/students/me/personal-qr');
   return data;
@@ -46,7 +55,7 @@ export const scanQR = async (qr_token, device_fingerprint) => {
 };
 
 // ============================
-// Invitations
+// Invitations (للـ Head والدكاترة)
 // ============================
 export const getInvitation = async (token) => {
   const { data } = await client.get(`/invitations/${token}`);

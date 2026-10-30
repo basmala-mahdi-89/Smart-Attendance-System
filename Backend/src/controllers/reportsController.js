@@ -6,30 +6,35 @@ const pool = require('../config/db');
 exports.doctorCourseReport = async (req, res) => {
   try {
     const doctorId = req.user.id;
+    const userRole = req.user.role; // ⚡ عشان نعرف هو دكتور ولا مهندس
     const { course_id } = req.params;
 
     const check = await pool.query(
       `SELECT c.id, c.course_code, c.course_name, c.academic_year, m.name AS major_name
-       FROM courses c
-       JOIN course_staff cs ON cs.course_id = c.id
-       JOIN majors m ON c.major_id = m.id
-       WHERE c.id = $1 AND cs.staff_id = $2`,
-      [course_id, doctorId]
+       FROM courses c JOIN course_staff cs ON cs.course_id = c.id JOIN majors m ON c.major_id = m.id
+       WHERE c.id = $1 AND cs.staff_id = $2`, [course_id, doctorId]
     );
 
     if (check.rows.length === 0) return res.status(403).json({ message: 'Access denied' });
     const course = check.rows[0];
 
+    // ⚡ تحديد النوع
+    const sessionType = userRole === 'engineer' ? 'section' : 'lecture';
+
     const sessionsRes = await pool.query(
-      `SELECT COUNT(*) AS total FROM sessions WHERE course_id = $1 AND is_active = FALSE`, [course_id]
+      `SELECT COUNT(*) AS total FROM sessions WHERE course_id = $1 AND is_active = FALSE AND type = $2`, 
+      [course_id, sessionType]
     );
     const totalSessions = parseInt(sessionsRes.rows[0].total);
 
     const studentsRes = await pool.query(
       `SELECT s.id AS student_id, s.full_name, s.national_id, COUNT(DISTINCT a.session_id) AS attended
        FROM enrollments e JOIN students s ON e.student_id = s.id
-       LEFT JOIN attendance a ON a.student_id = s.id AND a.session_id IN (SELECT id FROM sessions WHERE course_id = $1 AND is_active = FALSE)
-       WHERE e.course_id = $1 GROUP BY s.id, s.full_name, s.national_id ORDER BY s.full_name`, [course_id]
+       LEFT JOIN attendance a ON a.student_id = s.id 
+         AND a.session_id IN (SELECT id FROM sessions WHERE course_id = $1 AND is_active = FALSE AND type = $2)
+       WHERE e.course_id = $1 
+       GROUP BY s.id, s.full_name, s.national_id ORDER BY s.full_name`, 
+      [course_id, sessionType]
     );
 
     const students = studentsRes.rows.map(s => {
@@ -39,7 +44,7 @@ exports.doctorCourseReport = async (req, res) => {
       return { ...s, attended, absent: absent < 0 ? 0 : absent, percentage, total_sessions: totalSessions };
     });
 
-    res.json({ course, total_sessions: totalSessions, total_students: students.length, students });
+    res.json({ course, total_sessions: totalSessions, total_students: students.length, students, type: sessionType });
   } catch (err) {
     console.error('doctorCourseReport error:', err.message);
     res.status(500).json({ message: 'Server error' });

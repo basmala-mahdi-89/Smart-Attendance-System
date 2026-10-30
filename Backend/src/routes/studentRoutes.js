@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const ctrl = require('../controllers/studentController');
+const warnCtrl = require('../controllers/warningsController');
 const { verifyToken } = require('../middleware/auth');
 const { allowRoles } = require('../middleware/roles');
-const warnCtrl = require('../controllers/warningsController');
 
 // Public routes
 router.post('/register', ctrl.register);
@@ -20,7 +20,7 @@ router.get('/me/attendance', ctrl.getMyAttendance);
 router.get('/me/personal-qr', ctrl.getMyPersonalQR);
 router.post('/scan', ctrl.scanQR);
 
-// Warnings
+// ⚡ Warnings Route
 router.get('/me/warnings', warnCtrl.getMyWarnings);
 
 module.exports = router;
