@@ -5,15 +5,15 @@ import { AnimatedNumber } from '../ui/Motion';
 import { useLanguage } from '../../context/LanguageContext';
 
 const points = [
-  { icon: 'qr', text: 'Dynamic QR codes that refresh every 5 seconds' },
-  { icon: 'fingerprint', text: 'Device-bound accounts that stop proxy attendance' },
-  { icon: 'wifi-off', text: 'Offline personal QR when the network drops' },
+  { icon: 'qr', text: { en: 'Dynamic QR codes that refresh every 5 seconds', ar: 'رموز QR ديناميكية تتجدد كل 5 ثوانٍ' } },
+  { icon: 'fingerprint', text: { en: 'Device-bound accounts that stop proxy attendance', ar: 'حسابات مرتبطة بالجهاز تمنع حضور الوسيط' } },
+  { icon: 'wifi-off', text: { en: 'Offline personal QR when the network drops', ar: 'رموز QR الشخصية دون اتصال عند انقطاع الشبكة' } },
 ];
 
 const trust = [
-  { icon: 'lock', label: 'JWT secured' },
-  { icon: 'fingerprint', label: 'Device verified' },
-  { icon: 'shield-check', label: 'Anti-proxy' },
+  { icon: 'lock', label: { en: 'JWT secured', ar: 'محمي بـ JWT' } },
+  { icon: 'fingerprint', label: { en: 'Device verified', ar: 'متحقق من الجهاز' } },
+  { icon: 'shield-check', label: { en: 'Anti-proxy', ar: 'مضاد للوسيط' } },
 ];
 
 export default function AuthLayout({ children, wide = false }) {
@@ -45,7 +45,7 @@ export default function AuthLayout({ children, wide = false }) {
         </div>
 
         <div className="auth__brand-top">
-          <Logo variant="white" size="lg" subtitle="University Platform" />
+          <Logo variant="white" size="lg" subtitle={lang === 'ar' ? 'منصة الجامعة' : 'University Platform'} />
           <span className="auth__chip">
             <span className="dot-pulse" /> All systems live
           </span>
@@ -53,14 +53,15 @@ export default function AuthLayout({ children, wide = false }) {
 
         <div className="auth__brand-body">
           <span className="eyebrow" style={{ color: 'rgba(196,215,242,0.8)' }}>
-            <Icon name="sparkles" size={14} /> Smart · Secure · Real-time
+            <Icon name="sparkles" size={14} /> {lang === 'ar' ? 'ذكي · آمن · في الوقت الفعلي' : 'Smart · Secure · Real-time'}
           </span>
           <h1 className="display" style={{ marginTop: 14 }}>
-            Attendance that <em>proves itself.</em>
+            {lang === 'ar' ? 'حضور يثبت نفسه.' : <>Attendance that <em>proves itself.</em></>}
           </h1>
           <p>
-            One platform for deans, heads, doctors, engineers and students — with live
-            session tracking, automatic warnings and tamper-proof check-ins.
+            {lang === 'ar'
+              ? 'منصة واحدة لعميد الكليّة والعميد والطبيب والمهندس والطالب — مع تتبع الجلسات المباشر والتحذيرات التلقائية والحضور غير القابل للتزوير.'
+              : 'One platform for deans, heads, doctors, engineers and students — with live session tracking, automatic warnings and tamper-proof check-ins.'}
           </p>
 
           <ul className="auth__points">
@@ -69,7 +70,7 @@ export default function AuthLayout({ children, wide = false }) {
                 <span className="auth__point-icon">
                   <Icon name={point.icon} size={18} />
                 </span>
-                {point.text}
+                {lang === 'ar' ? point.text.ar : point.text.en}
               </li>
             ))}
           </ul>
@@ -141,13 +142,13 @@ export default function AuthLayout({ children, wide = false }) {
           onMouseLeave={resetPointer}
         >
           <div className="auth__mobile-logo">
-            <Logo size="md" subtitle="University Platform" />
+            <Logo size="md" subtitle={lang === 'ar' ? 'منصة الجامعة' : 'University Platform'} />
           </div>
           {children}
           <div className="auth__trust">
             {trust.map((item) => (
               <span key={item.label}>
-                <Icon name={item.icon} size={13} /> {item.label}
+                <Icon name={item.icon} size={13} /> {lang === 'ar' ? item.label.ar : item.label.en}
               </span>
             ))}
           </div>

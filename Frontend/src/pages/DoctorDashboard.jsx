@@ -11,6 +11,7 @@ import Icon from '../components/ui/Icon';
 import { Input, Select } from '../components/ui/Field';
 import { Alert, Badge, EmptyState, Loader, StatCard } from '../components/ui/Feedback';
 import { AnimatedNumber, ProgressBar } from '../components/ui/Motion';
+import { useLanguage } from '../context/LanguageContext';
 
 const initials = (name = '') =>
   name
@@ -23,6 +24,7 @@ const initials = (name = '') =>
 
 export default function DoctorDashboard() {
   const { user, logout } = useAuth();
+  const { lang } = useLanguage();
   const navigate = useNavigate();
 
   const [courses, setCourses] = useState([]);
@@ -342,8 +344,11 @@ export default function DoctorDashboard() {
       nav={nav}
       activeKey={activeTab}
       title={
-        { dashboard: 'Live session', courses: 'My courses', history: 'Session history' }[activeTab] ||
-        'Doctor workspace'
+        {
+          dashboard: { en: 'Live session', ar: 'الجلسة المباشرة' },
+          courses: { en: 'My courses', ar: 'مصاديقي' },
+          history: { en: 'Session history', ar: 'سجل الجلسات' },
+        }[activeTab]?.[lang] || { en: 'Doctor workspace', ar: 'مساحة الأطباء' }[lang]
       }
       crumb="Doctor"
       term={termLabel}

@@ -6,6 +6,7 @@ import Button from '../components/ui/Button';
 import { Input, PasswordInput } from '../components/ui/Field';
 import { Alert } from '../components/ui/Feedback';
 import Icon from '../components/ui/Icon';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function Login() {
   const [national_id, setNationalId] = useState('');
@@ -13,6 +14,7 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
+  const { lang } = useLanguage();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -43,19 +45,19 @@ export default function Login() {
     <AuthLayout>
       <div className="auth__head">
         <span className="eyebrow">
-          <Icon name="shield-check" size={14} /> Secure sign in
+          <Icon name="shield-check" size={14} /> {lang === 'ar' ? 'دخول آمن' : 'Secure sign in'}
         </span>
-        <h1>Welcome back</h1>
-        <p>Sign in with your university national ID to continue.</p>
+        <h1>{lang === 'ar' ? 'أهلاً بعودتك' : 'Welcome back'}</h1>
+        <p>{lang === 'ar' ? 'سجّل الدخول ببطاقة التعريف الوطنية الجامعية لمتابعة.' : 'Sign in with your university national ID to continue.'}</p>
       </div>
 
       <form className="auth__form" onSubmit={handleSubmit}>
         {error && <Alert variant="error">{error}</Alert>}
 
         <Input
-          label="National ID"
+          label={lang === 'ar' ? 'البطاقة الوطنية' : 'National ID'}
           icon="id-card"
-          placeholder="Enter your 14-digit national ID"
+          placeholder={lang === 'ar' ? 'أدخل البطاقة الوطنية المكونة من 14 رقماً' : 'Enter your 14-digit national ID'}
           value={national_id}
           onChange={(e) => setNationalId(e.target.value)}
           inputMode="numeric"
@@ -65,8 +67,8 @@ export default function Login() {
         />
 
         <PasswordInput
-          label="Password"
-          placeholder="Enter your password"
+          label={lang === 'ar' ? 'كلمة المرور' : 'Password'}
+          placeholder={lang === 'ar' ? 'أدخل كلمة المرور' : 'Enter your password'}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           autoComplete="current-password"
@@ -76,25 +78,27 @@ export default function Login() {
         <div className="auth__meta">
           <span className="row" style={{ gap: 7 }}>
             <Icon name="lock" size={14} />
-            <span className="muted">Protected by device verification</span>
+            <span className="muted">{lang === 'ar' ? 'محمي بتحقق الجهاز' : 'Protected by device verification'}</span>
           </span>
         </div>
 
         <Button type="submit" size="lg" block loading={loading} iconRight="arrow-right">
-          {loading ? 'Signing in…' : 'Sign in'}
+          {loading ? (lang === 'ar' ? 'جارٍ تسجيل الدخول…' : 'Signing in…') : (lang === 'ar' ? 'تسجيل الدخول' : 'Sign in')}
         </Button>
       </form>
 
       <div className="auth__note" style={{ marginTop: 18 }}>
         <Icon name="info" size={17} />
         <span>
-          New students must verify their email and wait for the Head of Department to
-          approve the account before signing in.
+          {lang === 'ar'
+            ? 'يجب على الطلاب الجدد التحقق من بريدهم الإلكتروني وانتظار موافقة عميد القسم قبل تسجيل الدخول.'
+            : 'New students must verify their email and wait for the Head of Department to approve the account before signing in.'}
         </span>
       </div>
 
       <div className="auth__foot">
-        Don&apos;t have an account? <Link to="/register">Create a student account</Link>
+        {lang === 'ar' ? 'ليس لديك حساب؟' : 'Don&apos;t have an account?'}{' '}
+        <Link to="/register">{lang === 'ar' ? 'أنشئ حساب طالباً' : 'Create a student account'}</Link>
       </div>
     </AuthLayout>
   );

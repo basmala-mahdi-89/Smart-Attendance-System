@@ -43,12 +43,12 @@ export default function Register() {
     setSuccess('');
 
     if (formData.password !== formData.confirm_password) {
-      setError('Passwords do not match');
+      setError(lang === 'ar' ? 'كلمتا المرور غير متطابقتين' : 'Passwords do not match');
       return;
     }
 
     if (formData.password.length < 8) {
-      setError('Password must be at least 8 characters');
+      setError(lang === 'ar' ? 'كلمة المرور يجب أن تكون 8 أحرف على الأقل' : 'Password must be at least 8 characters');
       return;
     }
 
@@ -61,11 +61,13 @@ export default function Register() {
         major_id: parseInt(data.major_id),
       });
       setSuccess(
-        'Registration successful! Check your email inbox — or the server console in development — for the verification link.'
+        lang === 'ar'
+          ? 'تم التسجيل بنجاح! تحقق من بريدك الإلكتروني — أو من وحدة التحكم في الخادم في التطوير — لرابط التحقق.'
+          : 'Registration successful! Check your email inbox — or the server console in development — for the verification link.'
       );
       console.log('Verify token:', result.verifyToken);
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed');
+      setError(err.response?.data?.message || (lang === 'ar' ? 'فشل التسجيل' : 'Registration failed'));
     } finally {
       setLoading(false);
     }
@@ -77,10 +79,10 @@ export default function Register() {
     <AuthLayout wide>
       <div className="auth__head">
         <span className="eyebrow">
-          <Icon name="graduation-cap" size={14} /> Student onboarding
+          <Icon name="graduation-cap" size={14} /> {lang === 'ar' ? 'تأهيل طالب جديد' : 'Student onboarding'}
         </span>
-        <h1>Create your account</h1>
-        <p>Register once, then wait for your Head of Department to approve you.</p>
+        <h1>{lang === 'ar' ? 'أنشئ حسابك' : 'Create your account'}</h1>
+        <p>{lang === 'ar' ? 'سجّل مرة واحدة، ثم انتظر موافقة عميد القسم على قبولك.' : 'Register once, then wait for your Head of Department to approve you.'}</p>
       </div>
 
       <form className="auth__form" onSubmit={handleSubmit}>
@@ -88,12 +90,12 @@ export default function Register() {
         {success && <Alert variant="success">{success}</Alert>}
 
         <div className="form-section">
-          <div className="form-section__title">Personal details</div>
+          <div className="form-section__title">{lang === 'ar' ? 'البيانات الشخصية' : 'Personal details'}</div>
           <div className="form-grid">
             <Input
-              label="National ID"
+              label={lang === 'ar' ? 'البطاقة الوطنية' : 'National ID'}
               icon="id-card"
-              placeholder="14 digits"
+              placeholder={lang === 'ar' ? '14 رقماً' : '14 digits'}
               value={formData.national_id}
               onChange={set('national_id')}
               maxLength={14}
@@ -109,20 +111,20 @@ export default function Register() {
               required
             />
             <Input
-              label="Email"
+              label={lang === 'ar' ? 'البريد الإلكتروني' : 'Email'}
               icon="mail"
               type="email"
-              placeholder="you@university.edu"
+              placeholder={lang === 'ar' ? 'you@university.edu' : 'you@university.edu'}
               value={formData.email}
               onChange={set('email')}
               autoComplete="email"
               required
             />
             <Input
-              label="Phone"
+              label={lang === 'ar' ? 'رقم الهاتف' : 'Phone'}
               icon="smartphone"
               type="tel"
-              placeholder="01x xxx xxxx"
+              placeholder={lang === 'ar' ? '01x xxx xxxx' : '01x xxx xxxx'}
               value={formData.phone}
               onChange={set('phone')}
               autoComplete="tel"
@@ -132,21 +134,26 @@ export default function Register() {
         </div>
 
         <div className="form-section">
-          <div className="form-section__title">Academic details</div>
+          <div className="form-section__title">{lang === 'ar' ? 'التفاصيل الأكاديمية' : 'Academic details'}</div>
           <div className="form-grid">
-            <Select label="Academic year" icon="calendar" value={formData.academic_year} onChange={set('academic_year')}>
+            <Select
+              label={lang === 'ar' ? 'السنة الدراسية' : 'Academic year'}
+              icon="calendar"
+              value={formData.academic_year}
+              onChange={set('academic_year')}
+            >
               <option value="1">Year 1</option>
               <option value="2">Year 2</option>
               <option value="3">Year 3</option>
               <option value="4">Year 4</option>
             </Select>
             <Input
-              label="Major ID"
+              label={lang === 'ar' ? 'معرف التخصص' : 'Major ID'}
               icon="building"
               type="number"
               min="1"
-              placeholder="e.g. 3"
-              hint="Ask your department for your Major ID."
+              placeholder={lang === 'ar' ? 'مثال: 3' : 'e.g. 3'}
+              hint={lang === 'ar' ? 'اسأل القسم عن معرف التخصص الخاص بك.' : 'Ask your department for your Major ID.'}
               value={formData.major_id}
               onChange={set('major_id')}
               required
@@ -155,12 +162,12 @@ export default function Register() {
         </div>
 
         <div className="form-section">
-          <div className="form-section__title">Account security</div>
+          <div className="form-section__title">{lang === 'ar' ? 'أمان الحساب' : 'Account security'}</div>
           <div className="form-grid">
             <div>
               <PasswordInput
-                label="Password"
-                placeholder="At least 8 characters"
+                label={lang === 'ar' ? 'كلمة المرور' : 'Password'}
+                placeholder={lang === 'ar' ? '8 أحرف على الأقل' : 'At least 8 characters'}
                 value={formData.password}
                 onChange={set('password')}
                 autoComplete="new-password"
@@ -175,17 +182,20 @@ export default function Register() {
                     <span />
                   </div>
                   <span className="field__hint">
-                    {['Very weak', 'Weak', 'Fair', 'Strong', 'Excellent'][score]} password
+                    {lang === 'ar'
+                      ? ['ضعيف جداً', 'ضعيف', 'متوسط', 'قوي', 'ممتاز'][score]
+                      : ['Very weak', 'Weak', 'Fair', 'Strong', 'Excellent'][score]}{' '}
+                    {lang === 'ar' ? 'كلمة المرور' : 'password'}
                   </span>
                 </>
               )}
             </div>
             <PasswordInput
-              label="Confirm password"
-              placeholder="Repeat your password"
+              label={lang === 'ar' ? 'تأكيد كلمة المرور' : 'Confirm password'}
+              placeholder={lang === 'ar' ? 'كرر كلمة المرور' : 'Repeat your password'}
               value={formData.confirm_password}
               onChange={set('confirm_password')}
-              error={mismatch ? 'Passwords do not match' : undefined}
+              error={mismatch ? (lang === 'ar' ? 'كلمتا المرور غير متطابقتين' : 'Passwords do not match') : undefined}
               autoComplete="new-password"
               required
             />
@@ -193,20 +203,21 @@ export default function Register() {
         </div>
 
         <Button type="submit" size="lg" block loading={loading} iconRight="arrow-right">
-          {loading ? 'Creating account…' : 'Create account'}
+          {loading ? (lang === 'ar' ? 'جارٍ إنشاء الحساب…' : 'Creating account…') : (lang === 'ar' ? 'إنشاء الحساب' : 'Create account')}
         </Button>
 
         <div className="auth__note">
           <Icon name="info" size={17} />
           <span>
-            After registering, verify your email and wait for approval. Once approved, you
-            are automatically enrolled in every course for your major and academic year.
+            {lang === 'ar'
+              ? 'بعد التسجيل، تحقق من بريدك الإلكتروني وانتظر الموافقة. بمجرد الموافقة، يتم تسجيلك تلقائياً في كل مادة للتخصص والسنة الدراسية.'
+              : 'After registering, verify your email and wait for approval. Once approved, you are automatically enrolled in every course for your major and academic year.'}
           </span>
         </div>
       </form>
 
       <div className="auth__foot">
-        Already have an account? <Link to="/login">Sign in</Link>
+        {lang === 'ar' ? 'لديك حساب بالفعل؟' : 'Already have an account?'} <Link to="/login">{lang === 'ar' ? 'سجّل الدخول' : 'Sign in'}</Link>
       </div>
     </AuthLayout>
   );
