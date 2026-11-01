@@ -6,6 +6,7 @@ import Button from '../components/ui/Button';
 import { Input, PasswordInput, Select } from '../components/ui/Field';
 import { Alert } from '../components/ui/Feedback';
 import Icon from '../components/ui/Icon';
+import { useLanguage } from '../context/LanguageContext';
 
 function passwordScore(value) {
   let score = 0;
@@ -17,6 +18,7 @@ function passwordScore(value) {
 }
 
 export default function Register() {
+  const { lang } = useLanguage();
   const [formData, setFormData] = useState({
     national_id: '',
     full_name: '',
@@ -99,9 +101,9 @@ export default function Register() {
               required
             />
             <Input
-              label="Full English Name"
+              label={lang === 'ar' ? 'الاسم الكامل' : 'Full English Name'}
               icon="user"
-              placeholder="As written in university records"
+              placeholder={lang === 'ar' ? 'اكتب الاسم الكامل' : 'As written in university records'}
               value={formData.full_name}
               onChange={set('full_name')}
               required

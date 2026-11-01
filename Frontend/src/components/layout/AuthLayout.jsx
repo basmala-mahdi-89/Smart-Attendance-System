@@ -1,7 +1,8 @@
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 import Logo from '../ui/Logo';
 import Icon from '../ui/Icon';
 import { AnimatedNumber } from '../ui/Motion';
+import { useLanguage } from '../../context/LanguageContext';
 
 const points = [
   { icon: 'qr', text: 'Dynamic QR codes that refresh every 5 seconds' },
@@ -17,14 +18,7 @@ const trust = [
 
 export default function AuthLayout({ children, wide = false }) {
   const cardRef = useRef(null);
-  const [lang, setLang] = useState('en');
-
-  const toggleLang = () => {
-    const next = lang === 'en' ? 'ar' : 'en';
-    setLang(next);
-    document.documentElement.lang = next;
-    document.documentElement.dir = next === 'ar' ? 'rtl' : 'ltr';
-  };
+  const { lang, toggle } = useLanguage();
 
   const handlePointer = (event) => {
     const card = cardRef.current;
@@ -131,7 +125,7 @@ export default function AuthLayout({ children, wide = false }) {
       <main className="auth__main">
         <button
           type="button"
-          onClick={toggleLang}
+          onClick={toggle}
           style={{
             position: 'fixed', top: 18, insetInlineEnd: 18, zIndex: 60,
             padding: '8px 14px', borderRadius: 999, border: '1px solid rgba(127,146,179,0.35)',
