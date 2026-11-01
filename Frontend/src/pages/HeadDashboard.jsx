@@ -8,6 +8,7 @@ import Icon from '../components/ui/Icon';
 import { Input, Select, Textarea } from '../components/ui/Field';
 import { Alert, Badge, EmptyState, Loader, StatCard } from '../components/ui/Feedback';
 import { AnimatedNumber, ProgressBar } from '../components/ui/Motion';
+import { useLanguage } from '../context/LanguageContext';
 
 const initials = (name = '') =>
   name
@@ -23,6 +24,7 @@ const statusVariant = (status) =>
 
 export default function HeadDashboard() {
   const { user, logout } = useAuth();
+  const { lang } = useLanguage();
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState('overview');
@@ -435,16 +437,16 @@ export default function HeadDashboard() {
       nav={nav}
       activeKey={activeTab}
       title={{
-        overview: 'Department overview',
-        courses: 'Manage courses',
-        invite: 'Invite staff',
-        invitations: 'Pending invitations',
-        students: 'All students',
-        risk: 'High risk students',
-        warning: 'Send warning',
-        sessions: 'Active sessions',
-        performance: 'Staff performance',
-      }[activeTab] || 'Head workspace'}
+        overview: { en: 'Department overview', ar: 'نظرة عامة على القسم' },
+        courses: { en: 'Manage courses', ar: 'إدارة المقررات' },
+        invite: { en: 'Invite staff', ar: 'مقترح موظف' },
+        invitations: { en: 'Pending invitations', ar: 'الدعوات المعلقة' },
+        students: { en: 'All students', ar: 'جميع الطلاب' },
+        risk: { en: 'High risk students', ar: 'طلاب عاليو الخطورة' },
+        warning: { en: 'Send warning', ar: 'إرسال تحذير' },
+        sessions: { en: 'Active sessions', ar: 'الجلسات النشطة' },
+        performance: { en: 'Staff performance', ar: 'أداء الموظفين' },
+      }[activeTab]?.[lang] || { en: 'Head workspace', ar: 'مساحة عميد القسم' }[lang]}
       crumb="Head of Department"
       term={termLabel}
       onLogout={logout}

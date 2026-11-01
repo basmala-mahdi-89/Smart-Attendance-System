@@ -7,6 +7,7 @@ import Icon from '../components/ui/Icon';
 import { Input, Select, Textarea } from '../components/ui/Field';
 import { Alert, Badge, EmptyState, Loader, StatCard } from '../components/ui/Feedback';
 import { AnimatedNumber, ProgressBar } from '../components/ui/Motion';
+import { useLanguage } from '../context/LanguageContext';
 
 const statusVariant = (status) =>
   status === 'active' ? 'success' : status === 'pending' ? 'warning' : 'danger';
@@ -16,6 +17,7 @@ const roleIcon = (role) =>
 
 export default function DeanDashboard() {
   const { user, logout } = useAuth();
+  const { lang } = useLanguage();
   const [activeTab, setActiveTab] = useState('overview');
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -445,7 +447,7 @@ export default function DeanDashboard() {
       role="dean"
       nav={nav}
       activeKey={activeTab}
-      title={titles[activeTab] || 'Dean console'}
+      title={titles[activeTab] || { en: 'Dean console', ar: 'ملكية الجامعة' }[lang]}
       crumb="Dean"
       onLogout={logout}
       actions={
