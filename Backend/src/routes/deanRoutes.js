@@ -22,6 +22,7 @@ router.delete('/heads/:id', deanController.deleteHead);
 
 // Dashboard & Overview
 router.get('/dashboard-data', deanController.getDeanDashboardData);
+router.put('/current-term', deanController.updateCurrentTerm);
 
 // Staff Warnings
 router.post('/send-staff-warning', warnCtrl.sendStaffWarning);

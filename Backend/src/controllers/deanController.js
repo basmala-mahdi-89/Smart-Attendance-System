@@ -64,6 +64,18 @@ exports.getMajors = async (req, res) => {
 };
 
 // Update Major
+exports.updateCurrentTerm = async (req, res) => {
+  try {
+    const { term } = req.body;
+    if (!['1', '2'].includes(term)) return res.status(400).json({ message: 'Invalid term' });
+    await pool.query(`UPDATE majors SET current_term = $1`, [term]);
+    res.json({ message: 'Current term updated successfully', current_term: term });
+  } catch (err) {
+    console.error('updateCurrentTerm error:', err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 exports.updateMajor = async (req, res) => {
   try {
     const { id } = req.params;

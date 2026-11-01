@@ -12,6 +12,7 @@ import PendingStudents from './pages/PendingStudents';
 import AcceptInvitation from './pages/AcceptInvitation';
 import DoctorReports from './pages/DoctorReports';
 import PersonalQR from './pages/PersonalQR';
+import Warnings from './pages/Warnings';
 import StudentScan from './pages/StudentScan';
 
 function App() {
@@ -36,6 +37,7 @@ function App() {
           } />
 
           <Route path="/student/scan" element={<ProtectedRoute allowedRoles={['student']}><StudentScan /></ProtectedRoute>} />
+          <Route path="/student/warnings" element={<ProtectedRoute allowedRoles={['student']}><Warnings /></ProtectedRoute>} />
 
           <Route path="/doctor" element={
             <ProtectedRoute allowedRoles={['doctor', 'head', 'dean']}>

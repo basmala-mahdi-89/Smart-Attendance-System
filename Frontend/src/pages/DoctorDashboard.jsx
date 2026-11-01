@@ -39,6 +39,19 @@ export default function DoctorDashboard() {
   const [selectedMajor, setSelectedMajor] = useState('all');
   const [selectedGrade, setSelectedGrade] = useState('all');
 
+  const [historySearch, setHistorySearch] = useState('');
+  const [historyFilterCourse, setHistoryFilterCourse] = useState('all');
+
+  const [attendees, setAttendees] = useState([]);
+  const [showAttendees, setShowAttendees] = useState(false);
+  const [selectedHistorySession, setSelectedHistorySession] = useState(null);
+
+  const [toast, setToast] = useState(null);
+  const notify = (msg, type = 'success') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
   const [showScanner, setShowScanner] = useState(false);
   const [scanResult, setScanResult] = useState(null);
   const [shortId, setShortId] = useState('');
@@ -67,6 +80,18 @@ export default function DoctorDashboard() {
     }
   };
 
+  const openAttendees = async (session) => {
+    setSelectedHistorySession(session);
+    setShowAttendees(true);
+    setAttendees([]);
+    try {
+      const { data } = await client.get(`/doctor/sessions/${session.id}/attendance`);
+      setAttendees(data.attendance || data);
+    } catch (err) {
+      notify(err.response?.data?.message || 'Failed to load attendees', 'error');
+    }
+  };
+
   const removeAttendance = async (attendanceId) => {
     if (!activeSession) return;
     if (!window.confirm('Remove this attendance record?')) return;
@@ -74,7 +99,7 @@ export default function DoctorDashboard() {
       await client.delete(`/doctor/sessions/${activeSession.id}/attendance/${attendanceId}`);
       loadAttendanceList(activeSession.id);
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to remove attendance');
+      notify(err.response?.data?.message || 'Failed to remove attendance');
     }
   };
 
@@ -191,7 +216,7 @@ export default function DoctorDashboard() {
       startQrRefresh(data.session.id);
       setActiveTab('dashboard');
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to start session');
+      notify(err.response?.data?.message || 'Failed to start session');
     }
   };
 
@@ -209,7 +234,7 @@ export default function DoctorDashboard() {
       setScanResult(null);
       setAttendanceList([]);
     } catch (err) {
-      alert('Failed to end session');
+      notify('Failed to end session');
     }
   };
 
@@ -260,6 +285,14 @@ export default function DoctorDashboard() {
   const isHeadMode = user?.role === 'head';
   const isDeanMode = user?.role === 'dean';
 
+  const filteredSessionHistory = sessionHistory.filter((s) => {
+    const matchCourse = historyFilterCourse === 'all' || String(s.course_id) === historyFilterCourse;
+    if (!matchCourse) return false;
+    if (!historySearch) return true;
+    const q = historySearch.toLowerCase();
+    return (s.course_code || '').toLowerCase().includes(q) || (s.course_name || '').toLowerCase().includes(q);
+  });
+
   const nav = [
     { key: 'dashboard', label: 'Live Session', icon: 'activity', section: 'Teaching' },
     { key: 'courses', label: 'My Courses', icon: 'book', onClick: () => setActiveTab('courses') },
@@ -274,9 +307,17 @@ export default function DoctorDashboard() {
   nav[1].onClick = () => setActiveTab('courses');
   nav[2].onClick = () => setActiveTab('history');
 
+  const toastEl = toast ? (
+    <div style={{ position: 'fixed', bottom: 20, right: 20, zIndex: 9999, padding: '10px 16px', background: toast.type === 'success' ? '#16a34a' : '#dc2626', color: '#fff', borderRadius: 8 }}>
+      {toast.msg}
+    </div>
+  ) : null;
+
   if (loading) {
     return (
-      <DashboardLayout
+      <>
+        {toastEl}
+        <DashboardLayout
         user={user}
         role="doctor"
         nav={nav}
@@ -288,11 +329,14 @@ export default function DoctorDashboard() {
       >
         <Loader label="Loading your courses…" />
       </DashboardLayout>
+      </>
     );
   }
 
   return (
-    <DashboardLayout
+    <>
+      {toastEl}
+      <DashboardLayout
       user={user}
       role="doctor"
       nav={nav}
@@ -706,7 +750,25 @@ export default function DoctorDashboard() {
               <h2>Session history</h2>
               <p>Every session you opened, with attendance totals.</p>
             </div>
-            <Badge variant="blue">{sessionHistory.length} session(s)</Badge>
+            <Badge variant="blue">{filteredSessionHistory.length} session(s)</Badge>
+            <select
+              className="input"
+              style={{ maxWidth: 160 }}
+              value={historyFilterCourse}
+              onChange={(e) => setHistoryFilterCourse(e.target.value)}
+            >
+              <option value="all">All courses</option>
+              {courses.map((c) => (
+                <option key={c.id} value={c.id}>{c.course_code}</option>
+              ))}
+            </select>
+            <input
+              className="input"
+              placeholder="Search sessions..."
+              value={historySearch}
+              onChange={(e) => setHistorySearch(e.target.value)}
+              style={{ maxWidth: 180 }}
+            />
           </div>
           <div className="table-wrap">
             <table className="table">
@@ -719,11 +781,12 @@ export default function DoctorDashboard() {
                   <th>End</th>
                   <th>Type</th>
                   <th style={{ minWidth: 140 }}>Attendance</th>
+                  <th>Attendees</th>
                   <th>Status</th>
                 </tr>
               </thead>
               <tbody>
-                {sessionHistory.map((s) => {
+                {filteredSessionHistory.map((s) => {
                   const pct =
                     s.enrolled_count > 0
                       ? Math.round((s.attendance_count / s.enrolled_count) * 100)
@@ -756,6 +819,11 @@ export default function DoctorDashboard() {
                         </div>
                       </td>
                       <td>
+                        <Button variant="soft" size="sm" icon="users" onClick={() => openAttendees(s)}>
+                          View
+                        </Button>
+                      </td>
+                      <td>
                         <Badge variant={s.is_active ? 'success' : 'neutral'} dot>
                           {s.is_active ? 'Active' : 'Completed'}
                         </Badge>
@@ -763,9 +831,9 @@ export default function DoctorDashboard() {
                     </tr>
                   );
                 })}
-                {sessionHistory.length === 0 && (
+                {filteredSessionHistory.length === 0 && (
                   <tr>
-                    <td colSpan="8">
+                    <td colSpan="9">
                       <EmptyState
                         icon="calendar"
                         title="No sessions yet"
@@ -779,6 +847,34 @@ export default function DoctorDashboard() {
           </div>
         </div>
       )}
+    {showAttendees && (
+      <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#fff', overflow: 'auto', padding: 24 }} onClick={() => setShowAttendees(false)}>
+        <div style={{ maxWidth: 1200, margin: '0 auto' }} onClick={(e) => e.stopPropagation()}>
+          <h2>Attendees — Session #{selectedHistorySession?.id}</h2>
+          {attendees.length === 0 ? (
+            <p className="muted">No attendance recorded.</p>
+          ) : (
+            <ul className="stack" style={{ gap: 6, maxHeight: 500, overflow: 'auto', minWidth: 320 }}>
+              {attendees.map((a) => (
+                <li key={a.attendance_id || a.id} className="row" style={{ justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #eee' }}>
+                  <div>
+                    <div style={{ fontSize: '1.15rem', fontWeight: 700 }}>{a.full_name}</div>
+                    <div className="muted-cell" style={{ fontSize: '0.9rem' }}>
+                      {a.major_name || ''} · Year {a.academic_year || ''} · {a.national_id || ''}
+                    </div>
+                  </div>
+                  <span className="muted-cell">{a.method} · {a.created_at ? new Date(a.created_at).toLocaleTimeString() : ''}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="row" style={{ justifyContent: 'flex-end', marginTop: 12 }}>
+            <Button variant="secondary" onClick={() => setShowAttendees(false)}>Close</Button>
+          </div>
+        </div>
+      </div>
+    )}
     </DashboardLayout>
+    </>
   );
 }

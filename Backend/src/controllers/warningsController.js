@@ -76,6 +76,7 @@ exports.sendWarnings = async (req, res) => {
       );
 
       // Send Email
+      let emailFailed = false;
       try {
         await transporter.sendMail({
           from: `"Smart Attendance" <${process.env.EMAIL_USER}>`,
@@ -94,12 +95,22 @@ exports.sendWarnings = async (req, res) => {
             <p>Please contact your doctor immediately.</p>
           `
         });
-      } catch (err) { console.error('Email error:', err.message); }
+      } catch (err) { console.error('Email error:', err.message); emailFailed = true; }
 
-      warningsSent.push({ student: s.full_name, level, absence: absencePct.toFixed(1) });
+      warningsSent.push({ student: s.full_name, level, absence: absencePct.toFixed(1), email_failed: emailFailed });
     }
 
-    res.json({ message: `Sent ${warningsSent.length} warnings.`, warnings_sent: warningsSent, skipped });
+    const failedEmails = warningsSent.filter((w) => w.email_failed).length;
+    // Audit log
+    try {
+      await pool.query(
+        `INSERT INTO audit_logs (actor_id, actor_role, action, target_type, target_id, details, ip_address)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [doctorId, 'doctor', 'SEND_WARNINGS', 'course', course_id, JSON.stringify({ sent: warningsSent.length, failed_emails: failedEmails, skipped: skipped.length }), req.ip]
+      );
+    } catch (e) { console.error('audit error:', e.message); }
+
+    res.json({ message: `Sent ${warningsSent.length} warnings.`, warnings_sent: warningsSent, skipped, failed_emails: failedEmails });
   } catch (err) {
     console.error('sendWarnings error:', err.message);
     res.status(500).json({ message: 'Server error' });
@@ -145,6 +156,7 @@ exports.sendStaffWarning = async (req, res) => {
     );
 
     let sentCount = 0;
+    let failedCount = 0;
     for (const staff of staffRes.rows) {
       try {
         await transporter.sendMail({
@@ -161,10 +173,19 @@ exports.sendStaffWarning = async (req, res) => {
         sentCount++;
       } catch (err) {
         console.error(`Failed to send to ${staff.email}:`, err.message);
+        failedCount++;
       }
     }
 
-    res.json({ message: `Warning sent to ${sentCount} staff member(s).` });
+    try {
+      await pool.query(
+        `INSERT INTO audit_logs (actor_id, actor_role, action, target_type, target_id, details, ip_address)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [req.user.id, 'dean', 'SEND_STAFF_WARNING', 'staff', null, JSON.stringify({ sent: sentCount, failed: failedCount, total: staffRes.rows.length }), req.ip]
+      );
+    } catch (e) { console.error('audit error:', e.message); }
+
+    res.json({ message: `Warning sent to ${sentCount} staff member(s).`, sent: sentCount, failed: failedCount });
   } catch (err) {
     console.error('sendStaffWarning error:', err.message);
     res.status(500).json({ message: 'Server error' });

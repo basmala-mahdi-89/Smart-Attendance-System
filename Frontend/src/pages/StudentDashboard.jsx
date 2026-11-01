@@ -126,6 +126,7 @@ export default function StudentDashboard() {
     section: 'Quick actions',
   });
   nav.push({ key: 'scan', label: 'Scan Session QR', icon: 'scan', to: '/student/scan' });
+  nav.push({ key: 'warnings', label: 'My Warnings', icon: 'alert-triangle', to: '/student/warnings' });
   nav.push({ key: 'signout', label: 'Sign out', icon: 'logout', onClick: logout });
 
   if (loading) {

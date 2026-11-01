@@ -72,13 +72,15 @@ export default function PersonalQR() {
     const loadSecret = async () => {
       try {
         let storedSecret = localStorage.getItem('student_totp_secret');
-        let storedId = localStorage.getItem('student_totp_id');
+        let storedId = localStorage.getItem('student_totp_id') || (user?.id ? user.id.toString() : '');
 
-        if (!storedSecret || !storedId) {
+        if (!storedSecret) {
           const { data } = await client.get('/students/me/personal-qr');
           storedSecret = data.totp_secret;
-          storedId = data.student_id.toString();
           localStorage.setItem('student_totp_secret', storedSecret);
+        }
+        if (!storedId && user?.id) {
+          storedId = user.id.toString();
           localStorage.setItem('student_totp_id', storedId);
         }
 
@@ -90,8 +92,10 @@ export default function PersonalQR() {
         setLoading(false);
       }
     };
-    loadSecret();
-  }, []);
+    if (user) {
+      loadSecret();
+    }
+  }, [user]);
 
   useEffect(() => {
     if (!secret || !studentId) return;
@@ -102,7 +106,7 @@ export default function PersonalQR() {
       setQrData(
         JSON.stringify({
           type: 'student_personal',
-          student_id: studentId,
+          student_id: String(studentId),
           otp: otp,
         })
       );

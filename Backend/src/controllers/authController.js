@@ -38,7 +38,7 @@ exports.login = async (req, res) => {
     }
 
     if (!user) {
-      return res.status(401).json({ message: 'Invalid Username' });
+      return res.status(401).json({ message: 'Invalid National ID' });
     }
 
     // Check password
@@ -78,23 +78,7 @@ exports.login = async (req, res) => {
         );
       }
 
-      // Login Limit
-      const today = new Date().toISOString().split('T')[0];
-      const lastDate = user.last_login_date ? new Date(user.last_login_date).toISOString().split('T')[0] : null;
-      let newLoginCount = 1;
-      
-      if (lastDate === today) {
-        newLoginCount = (user.login_count_today || 0) + 1;
-        if (newLoginCount > 3) {
-          await pool.query(`UPDATE students SET status = 'banned' WHERE id = $1`, [user.id]);
-          return res.status(403).json({ message: '🚫 Too many login attempts today. Account banned.' });
-        }
-      }
-      
-      await pool.query(
-        `UPDATE students SET login_count_today = $1, last_login_date = CURRENT_DATE WHERE id = $2`, 
-        [newLoginCount, user.id]
-      );
+      // Login limit removed
     }
 
     // Generate JWT

@@ -1,4 +1,9 @@
 const pool = require('../config/db');
+const nodemailer = require('nodemailer');
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
+});
 const { sendApprovalEmail } = require('../utils/emailService');
 
 // ============================
@@ -417,13 +422,75 @@ exports.sendWarningToStudents = async (req, res) => {
     
     // (هنا ممكن تضيف كود إرسال الإيميلات باستخدام nodemailer)
     // للتجربة هنرجع رسالة نجاح
-    res.json({ message: `Warning sent to ${students.rows.length} students.` });
+    let sentCount = 0;
+    let failedCount = 0;
+    for (const s of students.rows) {
+      try {
+        await transporter.sendMail({
+          from: `"Head of Department" <${process.env.EMAIL_USER}>`,
+          to: s.email,
+          subject: subject || 'Warning',
+          html: `<p>Dear ${s.full_name},</p><p style="white-space: pre-wrap;">${message}</p>`
+        });
+        sentCount++;
+      } catch (err) {
+        console.error('Email error:', err.message);
+        failedCount++;
+      }
+    }
+    res.json({ message: `Warning sent to ${sentCount} student(s).`, sent: sentCount, failed: failedCount, total: students.rows.length });
   } catch (err) { res.status(500).json({ message: 'Server error' }); }
 };
 
 // ============================
 // Active Sessions
 // ============================
+exports.getCourseStudents = async (req, res) => {
+  try {
+    const headId = req.user.id;
+    const { course_id } = req.params;
+    const majorRes = await pool.query(`SELECT id FROM majors WHERE head_staff_id = $1`, [headId]);
+    if (majorRes.rows.length === 0) return res.status(404).json({ message: 'No major assigned' });
+    const majorId = majorRes.rows[0].id;
+    const check = await pool.query(`SELECT id FROM courses WHERE id = $1 AND major_id = $2`, [course_id, majorId]);
+    if (check.rows.length === 0) return res.status(404).json({ message: 'Course not found' });
+
+    const result = await pool.query(
+      `SELECT s.id, s.full_name, s.national_id, s.academic_year, s.status
+       FROM enrollments e JOIN students s ON e.student_id = s.id
+       WHERE e.course_id = $1 ORDER BY s.full_name`,
+      [course_id]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('getCourseStudents error:', err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+exports.getSessionAttendance = async (req, res) => {
+  try {
+    const headId = req.user.id;
+    const { session_id } = req.params;
+    const check = await pool.query(
+      `SELECT s.id FROM sessions s JOIN courses c ON s.course_id = c.id JOIN majors m ON c.major_id = m.id
+       WHERE s.id = $1 AND m.head_staff_id = $2`,
+      [session_id, headId]
+    );
+    if (check.rows.length === 0) return res.status(404).json({ message: 'Session not found' });
+    const result = await pool.query(
+      `SELECT a.id, a.method, a.created_at, st.id AS student_id, st.full_name, st.national_id, st.academic_year, m.name AS major_name
+       FROM attendance a JOIN students st ON a.student_id = st.id LEFT JOIN majors m ON st.major_id = m.id
+       WHERE a.session_id = $1 ORDER BY a.created_at ASC`,
+      [session_id]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('getSessionAttendance error:', err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 exports.getActiveSessions = async (req, res) => {
   try {
     const headId = req.user.id;

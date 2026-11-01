@@ -35,6 +35,15 @@ export default function HeadDashboard() {
   // Filters
   const [filterCourseYear, setFilterCourseYear] = useState('all');
   const [filterCourseTerm, setFilterCourseTerm] = useState('all');
+  const [courseSearch, setCourseSearch] = useState('');
+
+  const [courseStudents, setCourseStudents] = useState([]);
+  const [showCourseStudents, setShowCourseStudents] = useState(false);
+  const [selectedCourse, setSelectedCourse] = useState(null);
+
+  const [sessionAttendees, setSessionAttendees] = useState([]);
+  const [showSessionAttendees, setShowSessionAttendees] = useState(false);
+  const [selectedSession, setSelectedSession] = useState(null);
 
   const [filterStudentYear, setFilterStudentYear] = useState('all');
 
@@ -73,16 +82,20 @@ export default function HeadDashboard() {
 
   const loadData = async () => {
     try {
-      const [coursesRes, staffRes, overviewRes, majorRes] = await Promise.all([
+      const [coursesRes, staffRes, overviewRes, majorRes, studentsRes] = await Promise.all([
         client.get('/head/courses'),
         client.get('/head/staff'),
         client.get('/head/major/overview'),
         client.get('/head/major/info'),
+        client.get('/head/students'),
       ]);
       setCourses(coursesRes.data);
       setStaff(staffRes.data);
       setOverview(overviewRes.data);
       setMajorInfo(majorRes.data);
+      setAllStudents(Array.isArray(studentsRes.data) ? studentsRes.data : []);
+      loadStaffPerf();
+      loadActiveSessions();
     } catch (err) {
       console.error(err);
     } finally {
@@ -104,6 +117,30 @@ export default function HeadDashboard() {
   // ============================
   // Course management
   // ============================
+  const openCourseStudents = async (course) => {
+    setSelectedCourse(course);
+    setShowCourseStudents(true);
+    setCourseStudents([]);
+    try {
+      const { data } = await client.get(`/head/courses/${course.id}/students`);
+      setCourseStudents(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const openSessionAttendees = async (session) => {
+    setSelectedSession(session);
+    setShowSessionAttendees(true);
+    setSessionAttendees([]);
+    try {
+      const { data } = await client.get(`/head/sessions/${session.id}/attendance`);
+      setSessionAttendees(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const openAddCourseModal = () => {
     setEditingCourse(null);
     setCourseForm({ course_code: '', course_name: '', academic_year: '1', term: majorInfo?.current_term || '1' });
@@ -313,7 +350,10 @@ export default function HeadDashboard() {
   const filteredCourses = courses.filter((c) => {
     const matchYear = filterCourseYear === 'all' || c.academic_year === filterCourseYear;
     const matchTerm = filterCourseTerm === 'all' || c.term === filterCourseTerm;
-    return matchYear && matchTerm;
+    if (!matchYear || !matchTerm) return false;
+    if (!courseSearch) return true;
+    const q = courseSearch.toLowerCase();
+    return (c.course_code || '').toLowerCase().includes(q) || (c.course_name || '').toLowerCase().includes(q);
   });
 
   const filteredStudents = allStudents.filter(
@@ -573,6 +613,13 @@ export default function HeadDashboard() {
                 <option value="1">1st Term</option>
                 <option value="2">2nd Term</option>
               </Select>
+              <input
+                className="input"
+                placeholder="Search courses..."
+                value={courseSearch}
+                onChange={(e) => setCourseSearch(e.target.value)}
+                style={{ maxWidth: 180 }}
+              />
               <Button size="sm" icon="plus" onClick={openAddCourseModal}>
                 Add course
               </Button>
@@ -656,6 +703,9 @@ export default function HeadDashboard() {
                         </td>
                         <td>
                           <div className="row" style={{ gap: 6 }}>
+                            <Button variant="soft" size="sm" icon="users" onClick={() => openCourseStudents(c)}>
+                              Students
+                            </Button>
                             <Button variant="secondary" size="sm" icon="edit" onClick={() => openEditCourseModal(c)}>
                               Edit
                             </Button>
@@ -1015,9 +1065,14 @@ export default function HeadDashboard() {
                     <td className="muted-cell">{s.created_by_name}</td>
                     <td className="muted-cell nowrap">{new Date(s.start_time).toLocaleString()}</td>
                     <td>
-                      <Button variant="danger" size="sm" icon="stop" onClick={() => closeSession(s.id)}>
-                        Close session
-                      </Button>
+                      <div className="row" style={{ gap: 6 }}>
+                        <Button variant="soft" size="sm" icon="users" onClick={() => openSessionAttendees(s)}>
+                          Attendees
+                        </Button>
+                        <Button variant="danger" size="sm" icon="stop" onClick={() => closeSession(s.id)}>
+                          Close session
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -1210,6 +1265,60 @@ export default function HeadDashboard() {
                 </Button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {showCourseStudents && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#fff', overflow: 'auto', padding: 24 }} onClick={() => setShowCourseStudents(false)}>
+          <div style={{ maxWidth: 1200, margin: '0 auto' }} onClick={(e) => e.stopPropagation()}>
+            <h2>Enrolled students — {selectedCourse?.course_code}</h2>
+            {courseStudents.length === 0 ? (
+              <p className="muted">No students enrolled.</p>
+            ) : (
+              <ul className="stack" style={{ gap: 6, maxHeight: 500, overflow: 'auto', minWidth: 320 }}>
+                {courseStudents.map((s) => (
+                  <li key={s.id} className="row" style={{ justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #eee' }}>
+                    <div>
+                      <div style={{ fontSize: '1.15rem', fontWeight: 700 }}>{s.full_name}</div>
+                      <div className="muted-cell" style={{ fontSize: '0.9rem' }}>Year {s.academic_year} · {s.national_id}</div>
+                    </div>
+                    <span className="muted-cell">{s.status}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="row" style={{ justifyContent: 'flex-end', marginTop: 12 }}>
+              <Button variant="secondary" onClick={() => setShowCourseStudents(false)}>Close</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showSessionAttendees && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#fff', overflow: 'auto', padding: 24 }} onClick={() => setShowSessionAttendees(false)}>
+          <div style={{ maxWidth: 1200, margin: '0 auto' }} onClick={(e) => e.stopPropagation()}>
+            <h2>Attendees — Session #{selectedSession?.id}</h2>
+            {sessionAttendees.length === 0 ? (
+              <p className="muted">No attendance recorded.</p>
+            ) : (
+              <ul className="stack" style={{ gap: 6, maxHeight: 500, overflow: 'auto', minWidth: 320 }}>
+                {sessionAttendees.map((a) => (
+                  <li key={a.id} className="row" style={{ justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #eee' }}>
+                    <div>
+                      <div style={{ fontSize: '1.15rem', fontWeight: 700 }}>{a.full_name}</div>
+                      <div className="muted-cell" style={{ fontSize: '0.9rem' }}>
+                        {a.major_name || ''} · Year {a.academic_year || ''} · {a.national_id || ''}
+                      </div>
+                    </div>
+                    <span className="muted-cell">{a.method} · {a.created_at ? new Date(a.created_at).toLocaleTimeString() : ''}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="row" style={{ justifyContent: 'flex-end', marginTop: 12 }}>
+              <Button variant="secondary" onClick={() => setShowSessionAttendees(false)}>Close</Button>
+            </div>
           </div>
         </div>
       )}

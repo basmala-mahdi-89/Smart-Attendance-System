@@ -78,7 +78,6 @@ export default function Login() {
             <Icon name="lock" size={14} />
             <span className="muted">Protected by device verification</span>
           </span>
-          <span className="badge badge--neutral">3 tries / day</span>
         </div>
 
         <Button type="submit" size="lg" block loading={loading} iconRight="arrow-right">

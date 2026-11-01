@@ -178,7 +178,7 @@ exports.getMyPersonalQR = async (req, res) => {
     const studentId = req.user.id;
     const studentRes = await pool.query(`SELECT totp_secret FROM students WHERE id = $1`, [studentId]);
     
-    let secret = studentRes.rows[0].totp_secret;
+    let secret = studentRes.rows[0]?.totp_secret;
 
     if (!secret) {
       const newSecret = speakeasy.generateSecret({ length: 20 });
@@ -186,7 +186,7 @@ exports.getMyPersonalQR = async (req, res) => {
       await pool.query(`UPDATE students SET totp_secret = $1 WHERE id = $2`, [secret, studentId]);
     }
 
-    res.json({ totp_secret: secret, message: 'Use this secret to generate offline OTP' });
+    res.json({ totp_secret: secret, student_id: studentId, message: 'Use this secret to generate offline OTP' });
   } catch (err) {
     console.error('getMyPersonalQR error:', err.message);
     res.status(500).json({ message: 'Server error' });

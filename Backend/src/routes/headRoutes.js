@@ -17,6 +17,7 @@ router.get('/staff', headController.getStaff);
 
 // Courses
 router.get('/courses', headController.getCourses);
+router.get('/courses/:course_id/students', headController.getCourseStudents);
 router.post('/courses', headController.createCourse);
 router.put('/courses/:course_id', headController.updateCourse);
 router.post('/courses/:course_id/staff', headController.assignStaffToCourse);
@@ -42,6 +43,7 @@ router.post('/students/warning', headController.sendWarningToStudents);
 
 // Sessions & Performance
 router.get('/sessions/active', headController.getActiveSessions);
+router.get('/sessions/:session_id/attendance', headController.getSessionAttendance);
 router.post('/sessions/:id/close', headController.closeSession);
 router.get('/staff/performance', headController.getStaffPerformance);
 

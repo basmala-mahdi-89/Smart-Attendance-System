@@ -24,11 +24,40 @@ export default function DeanDashboard() {
   const [selectedGrade, setSelectedGrade] = useState('all');
   const [filterRole, setFilterRole] = useState('all');
 
+  const [staffQuery, setStaffQuery] = useState('');
+  const [studentQuery, setStudentQuery] = useState('');
+  const [staffPage, setStaffPage] = useState(1);
+  const [studentPage, setStudentPage] = useState(1);
+  const PAGE_SIZE = 10;
+
+  const [toast, setToast] = useState(null);
+  const exportCSV = () => {
+    const rows = [['Major', 'Attendance Rate']];
+    filteredAttendanceOverview.forEach((a) => rows.push([a.major_name, a.attendance_rate]));
+    const csv = rows.map((r) => r.join(',')).join('\\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'attendance-overview.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const notify = (msg, type = 'success') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
   const [invitations, setInvitations] = useState([]);
 
   const [majors, setMajors] = useState([]);
   const [majorForm, setMajorForm] = useState({ name: '' });
   const [editingMajor, setEditingMajor] = useState(null);
+  const [currentTerm, setCurrentTerm] = useState('1');
+
+  const [inviteForm, setInviteForm] = useState({ full_name: '', email: '', national_id: '', role: 'head', major_id: '' });
+  const [inviteStatus, setInviteStatus] = useState('');
 
   const [broadcastForm, setBroadcastForm] = useState({
     subject: '',
@@ -53,6 +82,8 @@ export default function DeanDashboard() {
 
   useEffect(() => {
     loadData();
+    const interval = setInterval(loadData, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const loadData = async () => {
@@ -66,6 +97,9 @@ export default function DeanDashboard() {
       setData({ ...dashRes.data, majorsList: majorsRes.data });
       setInvitations(invitesRes.data);
       setMajors(majorsRes.data);
+      if (Array.isArray(majorsRes.data) && majorsRes.data.length > 0) {
+        setCurrentTerm(majorsRes.data[0].current_term || '1');
+      }
       setActiveSessions(Array.isArray(sessionsRes.data) ? sessionsRes.data : []);
     } catch (err) {
       console.error(err);
@@ -85,7 +119,7 @@ export default function DeanDashboard() {
       }
       loadData();
     } catch (err) {
-      alert(err.response?.data?.message || 'Action failed');
+      notify(err.response?.data?.message || 'Action failed');
     }
   };
 
@@ -95,33 +129,65 @@ export default function DeanDashboard() {
       await client.delete(`/dean/invitations/${id}`);
       loadData();
     } catch (err) {
-      alert('Failed to cancel');
+      notify('Failed to cancel');
     }
   };
 
   const addMajor = async (e) => {
     e.preventDefault();
-    if (!majorForm.name.trim()) return alert('Major name is required');
+    if (!majorForm.name.trim()) return notify('Major name is required');
     try {
       await client.post('/dean/majors', { name: majorForm.name });
       setMajorForm({ name: '' });
       loadData();
-      alert('Major added successfully');
+      notify('Major added successfully');
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to add major');
+      notify(err.response?.data?.message || 'Failed to add major');
     }
   };
 
   const updateMajor = async (e) => {
     if (e) e.preventDefault();
-    if (!editingMajor || !editingMajor.name.trim()) return alert('Major name is required');
+    if (!editingMajor || !editingMajor.name.trim()) return notify('Major name is required');
     try {
       await client.put(`/dean/majors/${editingMajor.id}`, { name: editingMajor.name });
       setEditingMajor(null);
       loadData();
-      alert('Major updated successfully');
+      notify('Major updated successfully');
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to update major');
+      notify(err.response?.data?.message || 'Failed to update major');
+    }
+  };
+
+  const handleTermChange = async (e) => {
+    const newTerm = e.target.value;
+    try {
+      await client.put('/dean/current-term', { term: newTerm });
+      setCurrentTerm(newTerm);
+      loadData();
+    } catch (err) {
+      notify('Failed to update term');
+    }
+  };
+
+  const sendInvite = async (e) => {
+    e.preventDefault();
+    setInviteStatus('');
+    if (!inviteForm.full_name.trim() || !inviteForm.email.trim() || !inviteForm.national_id.trim() || !inviteForm.major_id) {
+      setInviteStatus('All fields are required');
+      return;
+    }
+    if (!/^\d{14}$/.test(inviteForm.national_id.trim())) {
+      setInviteStatus('National ID must be 14 digits');
+      return;
+    }
+    try {
+      await client.post('/invitations', inviteForm);
+      setInviteStatus(`✅ Invitation sent to ${inviteForm.email}!`);
+      setInviteForm({ full_name: '', email: '', national_id: '', role: 'head', major_id: '' });
+      loadData();
+    } catch (err) {
+      setInviteStatus(err.response?.data?.message || 'Failed to send invitation');
     }
   };
 
@@ -130,13 +196,13 @@ export default function DeanDashboard() {
     try {
       await client.delete(`/dean/majors/${id}`);
       loadData();
-      alert('Major deleted successfully');
+      notify('Major deleted successfully');
     } catch (err) {
       const d = err.response?.data;
       if (d?.details) {
-        alert(`${d.message}\nStudents: ${d.details.students}, Courses: ${d.details.courses}, Staff: ${d.details.staff}`);
+        notify(`${d.message}\nStudents: ${d.details.students}, Courses: ${d.details.courses}, Staff: ${d.details.staff}`);
       } else {
-        alert(d?.message || 'Failed to delete major');
+        notify(d?.message || 'Failed to delete major');
       }
     }
   };
@@ -144,7 +210,7 @@ export default function DeanDashboard() {
   const sendBroadcast = async (e) => {
     e.preventDefault();
     if (!broadcastForm.subject.trim() || !broadcastForm.message.trim()) {
-      return alert('Subject and message are required');
+      return notify('Subject and message are required');
     }
     try {
       const payload = {
@@ -158,10 +224,10 @@ export default function DeanDashboard() {
         payload.academic_year = broadcastForm.academic_year;
       }
       const res = await client.post('/dean/broadcast-warning', payload);
-      alert(res.data.message);
+      notify(res.data.message);
       setBroadcastForm({ subject: '', message: '', warning_type: 'general', major_id: '', academic_year: '', target: 'all' });
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to send broadcast');
+      notify(err.response?.data?.message || 'Failed to send broadcast');
     }
   };
 
@@ -207,9 +273,9 @@ export default function DeanDashboard() {
       await client.post(`/dean/sessions/${id}/force-close`);
       loadActiveSessions();
       loadData();
-      alert('Session force-closed successfully');
+      notify('Session force-closed successfully');
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to close session');
+      notify(err.response?.data?.message || 'Failed to close session');
     }
   };
 
@@ -257,14 +323,22 @@ export default function DeanDashboard() {
     { key: 'audit', label: 'Audit Logs', icon: 'shield' },
     { key: 'signout', label: 'Sign out', icon: 'logout', onClick: logout, section: 'Account' },
   ].map((item) =>
-    ['overview', 'majors', 'broadcast', 'invitations', 'staff', 'students', 'reports', 'sessions', 'analytics', 'audit'].includes(item.key)
+    ['overview', 'majors', 'invite', 'broadcast', 'invitations', 'staff', 'students', 'reports', 'sessions', 'analytics', 'audit'].includes(item.key)
       ? { ...item, onClick: () => goTo(item.key) }
       : item
   );
 
+  const toastEl = toast ? (
+    <div style={{ position: 'fixed', bottom: 20, right: 20, zIndex: 9999, padding: '10px 16px', background: toast.type === 'success' ? '#16a34a' : '#dc2626', color: '#fff', borderRadius: 8 }}>
+      {toast.msg}
+    </div>
+  ) : null;
+
   if (loading) {
     return (
-      <DashboardLayout
+      <>
+        {toastEl}
+        <DashboardLayout
         user={user}
         role="dean"
         nav={nav}
@@ -275,6 +349,7 @@ export default function DeanDashboard() {
       >
         <Loader label="Loading institution data…" />
       </DashboardLayout>
+      </>
     );
   }
 
@@ -298,13 +373,28 @@ export default function DeanDashboard() {
   const matchYear = (year) => selectedGrade === 'all' || String(year) === String(selectedGrade);
   const matchRole = (role) => filterRole === 'all' || role === filterRole;
 
-  const filteredStudents = (data.students || []).filter((s) => matchMajor(s.major_name) && matchYear(s.academic_year));
-  const filteredStaff = (data.staff || []).filter((s) => matchMajor(s.major_name) && matchRole(s.role));
+  const filteredStudents = (data.students || []).filter((s) => {
+    if (!matchMajor(s.major_name) || !matchYear(s.academic_year)) return false;
+    if (!studentQuery) return true;
+    const q = studentQuery.toLowerCase();
+    return (s.full_name || '').toLowerCase().includes(q) || (s.email || '').toLowerCase().includes(q) || String(s.id).includes(q);
+  });
+  const filteredStaff = (data.staff || []).filter((s) => {
+    if (!matchMajor(s.major_name) || !matchRole(s.role)) return false;
+    if (!staffQuery) return true;
+    const q = staffQuery.toLowerCase();
+    return (s.full_name || '').toLowerCase().includes(q) || (s.email || '').toLowerCase().includes(q) || (s.role || '').toLowerCase().includes(q);
+  });
   const filteredInvitations = invitations.filter((inv) => matchMajor(inv.major_name) && matchRole(inv.role));
   const filteredCourses = (data.courses || []).filter((c) => matchMajor(c.major_name) && matchYear(c.academic_year));
   const filteredSessions = activeSessions.filter((s) => matchMajor(s.major_name) && matchYear(s.academic_year));
   const filteredAttendanceOverview = attendanceOverview.filter((a) => matchMajor(a.major_name));
   const filteredHighRisk = highRiskStudents.filter((s) => matchMajor(s.major_name) && matchYear(s.academic_year));
+
+  const pagedStaff = filteredStaff.slice((staffPage - 1) * PAGE_SIZE, staffPage * PAGE_SIZE);
+  const pagedStudents = filteredStudents.slice((studentPage - 1) * PAGE_SIZE, studentPage * PAGE_SIZE);
+  const staffPages = Math.max(1, Math.ceil(filteredStaff.length / PAGE_SIZE));
+  const studentPages = Math.max(1, Math.ceil(filteredStudents.length / PAGE_SIZE));
   const filteredStaffActivity = staffActivity.filter((st) => matchMajor(st.major_name) && matchRole(st.role));
   const filteredMostAbsent = (analytics?.most_absent_students || []).filter(
     (s) => matchMajor(s.major_name) && matchYear(s.academic_year)
@@ -332,6 +422,7 @@ export default function DeanDashboard() {
     students: 'Manage students',
     majors: 'Majors',
     broadcast: 'Broadcast warning',
+    invite: 'Invite a head',
     reports: 'Institution reports',
     sessions: 'Live sessions',
     analytics: 'Analytics',
@@ -347,7 +438,9 @@ export default function DeanDashboard() {
       : null;
 
   return (
-    <DashboardLayout
+    <>
+      {toastEl}
+      <DashboardLayout
       user={user}
       role="dean"
       nav={nav}
@@ -357,6 +450,17 @@ export default function DeanDashboard() {
       onLogout={logout}
       actions={
         <>
+          <div style={{ minWidth: 132 }}>
+            <Select
+              aria-label="Active term"
+              icon="calendar"
+              value={currentTerm}
+              onChange={handleTermChange}
+            >
+              <option value="1">1st Term</option>
+              <option value="2">2nd Term</option>
+            </Select>
+          </div>
           <Badge variant="neutral">{majors.length} major(s)</Badge>
           <span className="chip chip--live">
             <span className="dot-pulse" /> {filteredStats.active_sessions} live
@@ -534,6 +638,62 @@ export default function DeanDashboard() {
         </div>
       )}
 
+      {activeTab === 'invite' && (
+        <section className="form-card form-card--narrow">
+          <h2>Invite a head of department</h2>
+          <p>They will receive a secure invitation link to create their account.</p>
+          <form onSubmit={sendInvite} className="stack" style={{ gap: 16 }}>
+            <Input
+              label="Full name"
+              icon="user"
+              placeholder="Dr. Ahmed Mohamed"
+              value={inviteForm.full_name}
+              onChange={(e) => setInviteForm({ ...inviteForm, full_name: e.target.value })}
+              required
+            />
+            <Input
+              label="Email"
+              type="email"
+              icon="mail"
+              placeholder="name@university.edu"
+              value={inviteForm.email}
+              onChange={(e) => setInviteForm({ ...inviteForm, email: e.target.value })}
+              required
+            />
+            <Input
+              label="National ID"
+              icon="id-card"
+              placeholder="14 digits"
+              inputMode="numeric"
+              value={inviteForm.national_id}
+              onChange={(e) => setInviteForm({ ...inviteForm, national_id: e.target.value })}
+              required
+            />
+            <Select
+              label="Major"
+              value={inviteForm.major_id}
+              onChange={(e) => setInviteForm({ ...inviteForm, major_id: e.target.value })}
+              required
+            >
+              <option value="">Select major</option>
+              {majors.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
+            </Select>
+            <Button type="submit" icon="send" className="btn--block">
+              Send invitation
+            </Button>
+          </form>
+          {inviteStatus && (
+            <div style={{ marginTop: 16 }}>
+              <Alert variant={inviteStatus.startsWith('✅') ? 'success' : 'error'}>{inviteStatus}</Alert>
+            </div>
+          )}
+        </section>
+      )}
+
       {activeTab === 'invitations' && (
         <div className="card">
           <div className="data-bar">
@@ -591,6 +751,16 @@ export default function DeanDashboard() {
               <p>{filteredStaff.length} staff account(s) in this selection.</p>
             </div>
             <Badge variant="blue">{filteredStaff.length} staff</Badge>
+            <input
+              className="input"
+              placeholder="Search staff..."
+              value={staffQuery}
+              onChange={(e) => { setStaffQuery(e.target.value); setStaffPage(1); }}
+              style={{ maxWidth: 200 }}
+            />
+            <Button variant="secondary" size="sm" icon="user-plus" onClick={() => setActiveTab('invite')}>
+              Invite head
+            </Button>
           </div>
           <div className="table-wrap">
             <table className="table">
@@ -604,7 +774,7 @@ export default function DeanDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {filteredStaff.map((s) => {
+                {pagedStaff.map((s) => {
                   const currentStatus = s.status || 'active';
                   return (
                     <tr key={s.id}>
@@ -657,6 +827,11 @@ export default function DeanDashboard() {
                 )}
               </tbody>
             </table>
+            <div className="row" style={{ justifyContent: 'center', gap: 8, padding: 12 }}>
+              <Button size="sm" variant="secondary" disabled={staffPage <= 1} onClick={() => setStaffPage((p) => p - 1)}>Prev</Button>
+              <span>{staffPage} / {staffPages}</span>
+              <Button size="sm" variant="secondary" disabled={staffPage >= staffPages} onClick={() => setStaffPage((p) => p + 1)}>Next</Button>
+            </div>
           </div>
         </div>
       )}
@@ -669,6 +844,13 @@ export default function DeanDashboard() {
               <p>{filteredStudents.length} student account(s) in this selection.</p>
             </div>
             <Badge variant="blue">{filteredStudents.length} students</Badge>
+            <input
+              className="input"
+              placeholder="Search students..."
+              value={studentQuery}
+              onChange={(e) => { setStudentQuery(e.target.value); setStudentPage(1); }}
+              style={{ maxWidth: 200 }}
+            />
           </div>
           <div className="table-wrap">
             <table className="table">
@@ -683,7 +865,7 @@ export default function DeanDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {filteredStudents.map((s) => {
+                {pagedStudents.map((s) => {
                   const pct = Number(s.percentage) || 0;
                   return (
                     <tr key={s.id}>
@@ -736,6 +918,11 @@ export default function DeanDashboard() {
                 )}
               </tbody>
             </table>
+            <div className="row" style={{ justifyContent: 'center', gap: 8, padding: 12 }}>
+              <Button size="sm" variant="secondary" disabled={studentPage <= 1} onClick={() => setStudentPage((p) => p - 1)}>Prev</Button>
+              <span>{studentPage} / {studentPages}</span>
+              <Button size="sm" variant="secondary" disabled={studentPage >= studentPages} onClick={() => setStudentPage((p) => p + 1)}>Next</Button>
+            </div>
           </div>
         </div>
       )}
@@ -1342,5 +1529,6 @@ export default function DeanDashboard() {
         </div>
       )}
     </DashboardLayout>
+    </>
   );
 }
