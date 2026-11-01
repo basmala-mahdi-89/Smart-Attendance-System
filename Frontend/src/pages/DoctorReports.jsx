@@ -2,6 +2,12 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import client from '../api/client';
+import DashboardLayout from '../components/layout/DashboardLayout';
+import Button from '../components/ui/Button';
+import Icon from '../components/ui/Icon';
+import { Input, Select } from '../components/ui/Field';
+import { Badge, EmptyState, Loader, StatCard } from '../components/ui/Feedback';
+import { AnimatedNumber, ProgressBar } from '../components/ui/Motion';
 
 export default function DoctorReports() {
   const { user, logout } = useAuth();
@@ -11,8 +17,8 @@ export default function DoctorReports() {
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  
-  // ⚡ حالات اختيار الطلبة وإرسال الإنذارات
+
+  // Student selection + warning dispatch
   const [selectedStudents, setSelectedStudents] = useState([]);
   const [sendingWarnings, setSendingWarnings] = useState(false);
 
@@ -20,38 +26,43 @@ export default function DoctorReports() {
     const fetchCourses = async () => {
       try {
         const { data } = await client.get('/doctor/courses');
-        setCourses(data);
-      } catch (err) { console.error(err); }
+        setCourses(Array.isArray(data) ? data : data.courses || []);
+      } catch (err) {
+        console.error(err);
+      }
     };
     fetchCourses();
   }, []);
 
   const loadReport = async (courseId) => {
-    if (!courseId) { setReport(null); return; }
+    if (!courseId) {
+      setReport(null);
+      return;
+    }
     setLoading(true);
     setSearchTerm('');
-    setSelectedStudents([]); // بنصفر الاختيارات
+    setSelectedStudents([]);
     try {
       const { data } = await client.get(`/doctor/courses/${courseId}/report`);
       setReport(data);
-    } catch (err) { alert('Failed to load report'); } finally { setLoading(false); }
+    } catch (err) {
+      alert('Failed to load report');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // ⚡ دالة اختيار/إلغاء اختيار طالب
   const toggleStudent = (studentId) => {
-    setSelectedStudents(prev => 
-      prev.includes(studentId) 
-        ? prev.filter(id => id !== studentId) 
-        : [...prev, studentId]
+    setSelectedStudents((prev) =>
+      prev.includes(studentId) ? prev.filter((id) => id !== studentId) : [...prev, studentId]
     );
   };
 
-  // ⚡ دالة اختيار/إلغاء الكل
   const toggleAll = () => {
     if (selectedStudents.length === filteredStudents.length) {
       setSelectedStudents([]);
     } else {
-      setSelectedStudents(filteredStudents.map(s => s.student_id));
+      setSelectedStudents(filteredStudents.map((s) => s.student_id));
     }
   };
 
@@ -61,14 +72,14 @@ export default function DoctorReports() {
       return;
     }
     if (!window.confirm(`Send warnings to ${selectedStudents.length} selected student(s)?`)) return;
-    
+
     setSendingWarnings(true);
     try {
-      const { data } = await client.post(`/doctor/courses/${selectedCourse}/send-warnings`, { 
-        student_ids: selectedStudents 
+      const { data } = await client.post(`/doctor/courses/${selectedCourse}/send-warnings`, {
+        student_ids: selectedStudents,
       });
       alert(data.message);
-      setSelectedStudents([]); // بنصفر الاختيار بعد الإرسال
+      setSelectedStudents([]);
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to send warnings');
     } finally {
@@ -79,7 +90,9 @@ export default function DoctorReports() {
   const downloadCSV = async () => {
     if (!selectedCourse) return;
     try {
-      const response = await client.get(`/doctor/courses/${selectedCourse}/export`, { responseType: 'blob' });
+      const response = await client.get(`/doctor/courses/${selectedCourse}/export`, {
+        responseType: 'blob',
+      });
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -87,108 +100,266 @@ export default function DoctorReports() {
       document.body.appendChild(link);
       link.click();
       link.parentNode.removeChild(link);
-    } catch (err) { alert('Failed to download report'); }
+    } catch (err) {
+      alert('Failed to download report');
+    }
   };
 
-  const filteredStudents = report?.students.filter(s => 
-    s.full_name.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
+  const filteredStudents =
+    report?.students.filter((s) =>
+      s.full_name.toLowerCase().includes(searchTerm.toLowerCase())
+    ) || [];
+
+  const belowThreshold = filteredStudents.filter((s) => Number(s.percentage) < 75).length;
+  const allSelected =
+    filteredStudents.length > 0 && selectedStudents.length === filteredStudents.length;
+
+  const homeLink =
+    user?.role === 'head' ? '/head' : user?.role === 'dean' ? '/dean' : '/doctor';
+  const homeLabel =
+    user?.role === 'head' ? 'Head Overview' : user?.role === 'dean' ? 'Dean Console' : 'Live Session';
+
+  const nav = [
+    { key: 'dashboard', label: homeLabel, icon: user?.role === 'dean' ? 'building' : 'home', to: homeLink, section: 'Workspace' },
+    { key: 'reports', label: 'Attendance Reports', icon: 'chart' },
+    { key: 'signout', label: 'Sign out', icon: 'logout', onClick: logout, section: 'Account' },
+  ];
 
   return (
-    <div style={{ padding: '20px', fontFamily: 'Arial' }}>
-      <header style={{ display: 'flex', gap: '15px', alignItems: 'center', marginBottom: '20px' }}>
-        <h1>Attendance Reports</h1>
-        <button onClick={() => navigate('/doctor')} style={{ padding: '8px', cursor: 'pointer' }}>← Back to Dashboard</button>
-        <button onClick={logout} style={{ padding: '8px', cursor: 'pointer' }}>Logout</button>
-      </header>
-
-      <div style={{ marginBottom: '20px', display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
-        <div>
-          <label style={{ marginRight: '10px' }}>Select Course:</label>
-          <select 
-            value={selectedCourse} 
-            onChange={(e) => { setSelectedCourse(e.target.value); loadReport(e.target.value); }}
-            style={{ padding: '10px', minWidth: '300px', borderRadius: '5px', border: '1px solid #ccc' }}
-          >
-            <option value="">-- Choose a course --</option>
-            {courses.map(c => <option key={c.id} value={c.id}>{c.course_code} - {c.course_name}</option>)}
-          </select>
+    <DashboardLayout
+      user={user}
+      role={user?.role}
+      nav={nav}
+      activeKey="reports"
+      title="Attendance reports"
+      crumb="Reports"
+      onLogout={logout}
+      actions={
+        <Button variant="secondary" size="sm" icon="arrow-left" onClick={() => navigate(homeLink)}>
+          Back
+        </Button>
+      }
+    >
+      <div className="page-head">
+        <div className="page-head__text">
+          <h1>Course attendance report</h1>
+          <p>Inspect attendance per student, export a CSV, or send targeted warnings.</p>
         </div>
-
-        <button 
-          onClick={downloadCSV} 
-          disabled={!selectedCourse || !report}
-          style={{ padding: '10px 20px', background: 'green', color: 'white', border: 'none', borderRadius: '5px', cursor: selectedCourse ? 'pointer' : 'not-allowed', opacity: selectedCourse ? 1 : 0.5 }}
-        >
-          📥 Export to Excel (CSV)
-        </button>
-
-        {/* ⚡ زرار إرسال الإنذارات */}
-        <button 
-          onClick={handleSendWarnings} 
-          disabled={selectedStudents.length === 0 || sendingWarnings}
-          style={{ padding: '10px 20px', background: selectedStudents.length > 0 ? 'darkred' : 'gray', color: 'white', border: 'none', borderRadius: '5px', cursor: selectedStudents.length > 0 ? 'pointer' : 'not-allowed' }}
-        >
-          {sendingWarnings ? 'Sending...' : `⚠️ Send Warning (${selectedStudents.length})`}
-        </button>
+        <div className="page-head__actions">
+          {report && (
+            <Badge variant="blue" dot>
+              {report.type === 'section' ? 'Sections' : 'Lectures'} · {report.total_sessions} held
+            </Badge>
+          )}
+        </div>
       </div>
 
-      {loading && <p>Loading report...</p>}
-
-      {report && !loading && (
-        <section>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-            <div>
-              <h2>Report for {report.course.course_code} - {report.course.course_name}</h2>
-              <p><b>Total {report.type === 'section' ? 'Sections' : 'Lectures'} Held:</b> {report.total_sessions}</p>
+      <div className="card" style={{ marginBottom: 20 }}>
+        <div className="card__body">
+          <div className="toolbar" style={{ alignItems: 'flex-end' }}>
+            <div style={{ minWidth: 280, flex: '1 1 320px' }}>
+              <Select
+                label="Course"
+                icon="book"
+                value={selectedCourse}
+                onChange={(e) => {
+                  setSelectedCourse(e.target.value);
+                  loadReport(e.target.value);
+                }}
+              >
+                <option value="">Choose a course…</option>
+                {courses.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.course_code} — {c.course_name}
+                  </option>
+                ))}
+              </Select>
             </div>
-            <input 
-              type="text" 
-              placeholder="🔍 Search by student name..." 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={{ padding: '10px', width: '250px', borderRadius: '5px', border: '1px solid #ccc' }}
+            <Button
+              variant="secondary"
+              icon="download"
+              disabled={!selectedCourse || !report}
+              onClick={downloadCSV}
+            >
+              Export CSV
+            </Button>
+            <Button
+              variant="danger"
+              icon="alert"
+              loading={sendingWarnings}
+              disabled={selectedStudents.length === 0 || sendingWarnings}
+              onClick={handleSendWarnings}
+            >
+              Send warning ({selectedStudents.length})
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {loading && <Loader label="Building report…" />}
+
+      {!loading && !report && (
+        <div className="card">
+          <div className="card__body">
+            <EmptyState
+              icon="chart"
+              title="Select a course to view its report"
+              description="Pick one of your courses above to see per-student attendance, export it, or send warnings."
             />
           </div>
-          
-          <table border="1" cellPadding="10" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-            <thead style={{ background: '#f0f0f0' }}>
-              <tr>
-                <th style={{ width: '40px' }}>
-                  <input type="checkbox" onChange={toggleAll} checked={filteredStudents.length > 0 && selectedStudents.length === filteredStudents.length} />
-                </th>
-                <th>Student Name</th>
-                <th>National ID</th>
-                <th>Attended</th>
-                <th>Absent</th>
-                <th>Percentage</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredStudents.length === 0 ? (
-                <tr><td colSpan="6" style={{ textAlign: 'center', padding: '20px', color: 'gray' }}>No students found.</td></tr>
-              ) : (
-                filteredStudents.map(s => (
-                  <tr key={s.student_id}>
-                    <td>
-                      <input 
-                        type="checkbox" 
-                        checked={selectedStudents.includes(s.student_id)} 
-                        onChange={() => toggleStudent(s.student_id)} 
-                      />
-                    </td>
-                    <td>{s.full_name}</td>
-                    <td>{s.national_id}</td>
-                    <td>{s.attended}</td>
-                    <td>{s.absent}</td>
-                    <td style={{ color: s.percentage >= 75 ? 'green' : 'red', fontWeight: 'bold' }}>{s.percentage}%</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </section>
+        </div>
       )}
-    </div>
+
+      {report && !loading && (
+        <div className="stack">
+          <div className="kpi-grid stagger">
+            <StatCard
+              icon="calendar"
+              label={report.type === 'section' ? 'Sections held' : 'Lectures held'}
+              value={<AnimatedNumber value={report.total_sessions} />}
+              meta={`${report.course.course_code} · ${report.course.course_name}`}
+              tone="navy"
+            />
+            <StatCard
+              icon="users"
+              label="Students in report"
+              value={<AnimatedNumber value={filteredStudents.length} />}
+              meta={`${selectedStudents.length} selected`}
+              tone="blue"
+            />
+            <StatCard
+              icon="alert"
+              label="Below 75%"
+              value={<AnimatedNumber value={belowThreshold} />}
+              meta="Eligible for a warning"
+              tone={belowThreshold > 0 ? 'danger' : 'olive'}
+            />
+          </div>
+
+          <div className="card">
+            <div className="data-bar">
+              <div>
+                <h2>
+                  {report.course.course_code} — {report.course.course_name}
+                </h2>
+                <p>Select students to send them an attendance warning.</p>
+              </div>
+              <div className="data-bar__actions">
+                <div style={{ minWidth: 220 }}>
+                  <Input
+                    icon="search"
+                    placeholder="Search student name…"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    aria-label="Search student name"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="table-wrap">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th className="check-cell">
+                      <input
+                        type="checkbox"
+                        aria-label="Select all students"
+                        onChange={toggleAll}
+                        checked={allSelected}
+                      />
+                    </th>
+                    <th>Student</th>
+                    <th>National ID</th>
+                    <th>Attended</th>
+                    <th>Absent</th>
+                    <th style={{ minWidth: 170 }}>Percentage</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredStudents.length === 0 ? (
+                    <tr>
+                      <td colSpan="6">
+                        <EmptyState
+                          icon="search"
+                          title="No students found"
+                          description="Try a different name in the search box."
+                        />
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredStudents.map((s) => {
+                      const selected = selectedStudents.includes(s.student_id);
+                      return (
+                        <tr key={s.student_id} className={selected ? 'row-selected' : ''}>
+                          <td className="check-cell">
+                            <input
+                              type="checkbox"
+                              aria-label={`Select ${s.full_name}`}
+                              checked={selected}
+                              onChange={() => toggleStudent(s.student_id)}
+                            />
+                          </td>
+                          <td>
+                            <span className="strong">{s.full_name}</span>
+                          </td>
+                          <td className="muted-cell mono">{s.national_id}</td>
+                          <td className="num">{s.attended}</td>
+                          <td className="num">{s.absent}</td>
+                          <td>
+                            <div className="row" style={{ gap: 10 }}>
+                              <span style={{ flex: 1, minWidth: 80 }}>
+                                <ProgressBar
+                                  value={Number(s.percentage) || 0}
+                                  tone={
+                                    Number(s.percentage) >= 75
+                                      ? 'success'
+                                      : Number(s.percentage) >= 50
+                                        ? 'warning'
+                                        : 'danger'
+                                  }
+                                />
+                              </span>
+                              <span
+                                className={`percent ${
+                                  Number(s.percentage) >= 75 ? 'percent--good' : 'percent--bad'
+                                }`}
+                              >
+                                {s.percentage}%
+                              </span>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="data-bar" style={{ borderBottom: 0, borderTop: '1px solid var(--line-2)' }}>
+              <div>
+                <p>
+                  <Icon name="info" size={13} /> Warnings are sent as in-app notifications to the
+                  selected students.
+                </p>
+              </div>
+              <div className="data-bar__actions">
+                <Button
+                  variant="danger"
+                  size="sm"
+                  icon="send"
+                  loading={sendingWarnings}
+                  disabled={selectedStudents.length === 0 || sendingWarnings}
+                  onClick={handleSendWarnings}
+                >
+                  Send to {selectedStudents.length} student(s)
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </DashboardLayout>
   );
 }

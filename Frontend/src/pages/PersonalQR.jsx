@@ -3,11 +3,18 @@ import { QRCodeSVG } from 'qrcode.react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import client from '../api/client';
+import DashboardLayout from '../components/layout/DashboardLayout';
+import Button from '../components/ui/Button';
+import Icon from '../components/ui/Icon';
+import { Badge, Loader } from '../components/ui/Feedback';
+import { ProgressBar } from '../components/ui/Motion';
 
 function base32Decode(base32) {
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-  let bits = 0, value = 0, index = 0;
-  const buffer = new Uint8Array(Math.ceil(base32.length * 5 / 8));
+  let bits = 0,
+    value = 0,
+    index = 0;
+  const buffer = new Uint8Array(Math.ceil((base32.length * 5) / 8));
   for (let i = 0; i < base32.length; i++) {
     const val = alphabet.indexOf(base32[i].toUpperCase());
     if (val === -1) continue;
@@ -24,31 +31,36 @@ function base32Decode(base32) {
 async function generateTOTP(secret) {
   const key = base32Decode(secret);
   const epoch = Math.floor(Date.now() / 1000);
-  const counter = Math.floor(epoch / 30); // 30 ثانية
+  const counter = Math.floor(epoch / 30);
   const buffer = new ArrayBuffer(8);
   const view = new DataView(buffer);
-  view.setUint32(4, counter, false); 
-  
+  view.setUint32(4, counter, false);
+
   const cryptoKey = await crypto.subtle.importKey(
-    'raw', key, { name: 'HMAC', hash: 'SHA-1' }, false, ['sign']
+    'raw',
+    key,
+    { name: 'HMAC', hash: 'SHA-1' },
+    false,
+    ['sign']
   );
-  
+
   const signature = await crypto.subtle.sign('HMAC', cryptoKey, buffer);
   const hash = new Uint8Array(signature);
-  
+
   const offset = hash[hash.length - 1] & 0xf;
-  const binary = ((hash[offset] & 0x7f) << 24) |
-                 ((hash[offset + 1] & 0xff) << 16) |
-                 ((hash[offset + 2] & 0xff) << 8) |
-                 (hash[offset + 3] & 0xff);
-                 
+  const binary =
+    ((hash[offset] & 0x7f) << 24) |
+    ((hash[offset + 1] & 0xff) << 16) |
+    ((hash[offset + 2] & 0xff) << 8) |
+    (hash[offset + 3] & 0xff);
+
   const otp = binary % 1000000;
   return otp.toString().padStart(6, '0');
 }
 
 export default function PersonalQR() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [secret, setSecret] = useState('');
   const [studentId, setStudentId] = useState('');
   const [token, setToken] = useState('');
@@ -61,7 +73,7 @@ export default function PersonalQR() {
       try {
         let storedSecret = localStorage.getItem('student_totp_secret');
         let storedId = localStorage.getItem('student_totp_id');
-        
+
         if (!storedSecret || !storedId) {
           const { data } = await client.get('/students/me/personal-qr');
           storedSecret = data.totp_secret;
@@ -69,7 +81,7 @@ export default function PersonalQR() {
           localStorage.setItem('student_totp_secret', storedSecret);
           localStorage.setItem('student_totp_id', storedId);
         }
-        
+
         setSecret(storedSecret);
         setStudentId(storedId);
         setLoading(false);
@@ -83,19 +95,21 @@ export default function PersonalQR() {
 
   useEffect(() => {
     if (!secret || !studentId) return;
-    
+
     const updateOTP = async () => {
       const otp = await generateTOTP(secret);
       setToken(otp);
-      setQrData(JSON.stringify({
-        type: 'student_personal',
-        student_id: studentId,
-        otp: otp
-      }));
+      setQrData(
+        JSON.stringify({
+          type: 'student_personal',
+          student_id: studentId,
+          otp: otp,
+        })
+      );
     };
 
     updateOTP();
-    
+
     const interval = setInterval(() => {
       updateOTP();
       setTimeLeft((prev) => (prev > 0 ? prev - 1 : 30));
@@ -104,25 +118,88 @@ export default function PersonalQR() {
     return () => clearInterval(interval);
   }, [secret, studentId]);
 
-  if (loading) return <div style={{ padding: '40px', textAlign: 'center' }}>Loading...</div>;
+  const nav = [
+    { key: 'dashboard', label: 'Overview', icon: 'home', to: '/student', section: 'Student workspace' },
+    { key: 'personal-qr', label: 'My Personal QR', icon: 'qr' },
+    { key: 'scan', label: 'Scan Session QR', icon: 'scan', to: '/student/scan' },
+    { key: 'signout', label: 'Sign out', icon: 'logout', onClick: logout, section: 'Account' },
+  ];
 
   return (
-    <div style={{ padding: '30px', fontFamily: 'Segoe UI, sans-serif', backgroundColor: '#f4f7f6', minHeight: '100vh', textAlign: 'center' }}>
-      <div style={{ maxWidth: '420px', margin: '0 auto', background: '#fff', padding: '35px', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
-        <button onClick={() => navigate('/student')} style={{ marginBottom: '25px', padding: '9px 18px', border: 'none', borderRadius: '6px', cursor: 'pointer', background: '#e2e8f0', fontWeight: '600' }}>← Back</button>
-        <h1 style={{ margin: '0 0 8px 0', color: '#2c3e50', fontSize: '28px' }}>My Personal QR</h1>
-        <p style={{ color: '#4a5568', marginBottom: '20px', fontWeight: '600' }}>{user?.full_name}</p>
-        
-        <div style={{ background: 'white', padding: '20px', display: 'inline-block', borderRadius: '12px', border: '4px solid #805ad5' }}>
-          {qrData && <QRCodeSVG value={qrData} size={260} />}
+    <DashboardLayout
+      user={user}
+      role="student"
+      nav={nav}
+      activeKey="personal-qr"
+      title="My personal QR"
+      crumb="Student · Identity"
+      onLogout={logout}
+      actions={
+        <Button variant="secondary" size="sm" icon="arrow-left" onClick={() => navigate('/student')}>
+          Dashboard
+        </Button>
+      }
+    >
+      <div className="page-head">
+        <div className="page-head__text">
+          <h1>Your offline attendance identity</h1>
+          <p>Show this code to the doctor or engineer when the camera scanner is in use.</p>
         </div>
-
-        <div style={{ marginTop: '25px', padding: '18px', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', borderRadius: '10px', color: 'white' }}>
-          <p style={{ margin: 0, fontSize: '13px' }}>TOTP CODE (30s)</p>
-          <p style={{ margin: '8px 0', fontSize: '38px', fontWeight: 'bold', letterSpacing: '12px' }}>{token}</p>
-          <p style={{ margin: 0, fontSize: '14px' }}>Refreshes in {timeLeft} seconds</p>
+        <div className="page-head__actions">
+          <Badge variant="success" dot>
+            Device-bound · refreshes every 30s
+          </Badge>
         </div>
       </div>
-    </div>
+
+      {loading ? (
+        <Loader label="Preparing your secure QR…" />
+      ) : (
+        <div className="center-page">
+          <section className="qr-card anim-scale">
+            <h1>My personal QR</h1>
+            <p className="qr-card__name">{user?.full_name}</p>
+
+            <div className="qr-card__frame">
+              {qrData ? (
+                <QRCodeSVG value={qrData} size={248} />
+              ) : (
+                <div style={{ width: 248, height: 248 }} />
+              )}
+            </div>
+
+            <div className="totp">
+              <div className="totp__label">TOTP code · 30 seconds</div>
+              <div className="totp__code">{token || '••••••'}</div>
+              <div className="totp__meta">Refreshes in {timeLeft} seconds</div>
+              <ProgressBar
+                value={(timeLeft / 30) * 100}
+                tone={timeLeft <= 5 ? 'warning' : 'blue'}
+                showLabel
+                label={`${timeLeft}s`}
+              />
+            </div>
+
+            <div className="qr-card__hint">
+              <Icon name="shield-check" size={17} />
+              <span>
+                This code is tied to your account and device. Sharing it with another student will
+                be flagged as proxy attendance.
+              </span>
+            </div>
+
+            <Button
+              variant="secondary"
+              block
+              icon="scan"
+              style={{ marginTop: 16 }}
+              onClick={() => navigate('/student/scan')}
+            >
+              Scan a session QR instead
+            </Button>
+          </section>
+        </div>
+      )}
+    </DashboardLayout>
   );
 }

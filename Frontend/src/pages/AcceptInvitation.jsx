@@ -1,6 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getInvitation, acceptInvitation } from '../api/students';
+import AuthLayout from '../components/layout/AuthLayout';
+import Button from '../components/ui/Button';
+import { PasswordInput } from '../components/ui/Field';
+import { Alert, Loader } from '../components/ui/Feedback';
+import Icon from '../components/ui/Icon';
 
 export default function AcceptInvitation() {
   const { token } = useParams();
@@ -12,9 +17,11 @@ export default function AcceptInvitation() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [done, setDone] = useState(false);
 
   useEffect(() => {
     loadInvitation();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   const loadInvitation = async () => {
@@ -45,8 +52,8 @@ export default function AcceptInvitation() {
     setSubmitting(true);
     try {
       await acceptInvitation(token, password);
-      alert('Account created successfully! Please login.');
-      navigate('/login');
+      setDone(true);
+      window.setTimeout(() => navigate('/login'), 1600);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to accept invitation');
     } finally {
@@ -54,69 +61,116 @@ export default function AcceptInvitation() {
     }
   };
 
-  if (loading) return <div style={{ padding: '20px' }}>Loading invitation...</div>;
+  if (loading) {
+    return (
+      <AuthLayout>
+        <Loader label="Verifying your invitation…" />
+      </AuthLayout>
+    );
+  }
 
   if (error && !invitation) {
     return (
-      <div style={{ padding: '20px' }}>
-        <h1>Invalid Invitation</h1>
-        <p style={{ color: 'red' }}>{error}</p>
-        <Link to="/login">Go to Login</Link>
-      </div>
+      <AuthLayout>
+        <div className="auth__head">
+          <span className="eyebrow">
+            <Icon name="alert" size={14} /> Invitation problem
+          </span>
+          <h1>This link is not valid</h1>
+          <p>The invitation may have expired or already been used.</p>
+        </div>
+        <div className="stack">
+          <Alert variant="error">{error}</Alert>
+          <Button variant="secondary" block icon="arrow-left" onClick={() => navigate('/login')}>
+            Back to sign in
+          </Button>
+        </div>
+      </AuthLayout>
+    );
+  }
+
+  if (done) {
+    return (
+      <AuthLayout>
+        <div className="auth__head">
+          <span className="eyebrow">
+            <Icon name="check-circle" size={14} /> Account ready
+          </span>
+          <h1>Welcome aboard</h1>
+          <p>Your account has been created. Redirecting you to sign in…</p>
+        </div>
+        <Alert variant="success">Account created successfully. You can now sign in.</Alert>
+        <div className="row" style={{ marginTop: 18 }}>
+          <span className="spinner" aria-hidden="true" />
+          <span className="muted">Taking you to the login screen…</span>
+        </div>
+      </AuthLayout>
     );
   }
 
   return (
-    <div style={{ padding: '20px', maxWidth: '500px', margin: '0 auto' }}>
-      <h1>Accept Invitation</h1>
-      
+    <AuthLayout>
+      <div className="auth__head">
+        <span className="eyebrow">
+          <Icon name="mail" size={14} /> Invitation
+        </span>
+        <h1>You&apos;re invited</h1>
+        <p>Set a secure password to activate your Smart Attendance account.</p>
+      </div>
+
       {invitation && (
-        <div style={{ background: '#f0f0f0', padding: '15px', marginBottom: '20px' }}>
-          <p><b>Name:</b> {invitation.full_name}</p>
-          <p><b>Email:</b> {invitation.email}</p>
-          <p><b>Role:</b> {invitation.role}</p>
-          {invitation.major_name && <p><b>Major:</b> {invitation.major_name}</p>}
-        </div>
+        <dl className="invite-card" style={{ marginBottom: 20 }}>
+          <div className="invite-card__row">
+            <dt>Name</dt>
+            <dd>{invitation.full_name}</dd>
+          </div>
+          <div className="invite-card__row">
+            <dt>Email</dt>
+            <dd style={{ textTransform: 'none', fontWeight: 600 }}>{invitation.email}</dd>
+          </div>
+          <div className="invite-card__row">
+            <dt>Role</dt>
+            <dd>
+              <span className="badge badge--blue">{invitation.role}</span>
+            </dd>
+          </div>
+          {invitation.major_name && (
+            <div className="invite-card__row">
+              <dt>Major</dt>
+              <dd>{invitation.major_name}</dd>
+            </div>
+          )}
+        </dl>
       )}
 
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+      <form className="auth__form" onSubmit={handleSubmit}>
+        {error && <Alert variant="error">{error}</Alert>}
 
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: '15px' }}>
-          <label>Password:</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="At least 8 characters"
-            style={{ width: '100%', padding: '8px' }}
-            required
-          />
-        </div>
+        <PasswordInput
+          label="New password"
+          placeholder="At least 8 characters"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          autoComplete="new-password"
+          required
+        />
+        <PasswordInput
+          label="Confirm password"
+          placeholder="Repeat your new password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          autoComplete="new-password"
+          required
+        />
 
-        <div style={{ marginBottom: '15px' }}>
-          <label>Confirm Password:</label>
-          <input
-            type="password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            style={{ width: '100%', padding: '8px' }}
-            required
-          />
-        </div>
-
-        <button 
-          type="submit" 
-          disabled={submitting}
-          style={{ padding: '10px 20px', background: 'green', color: 'white', border: 'none' }}
-        >
-          {submitting ? 'Creating account...' : 'Create Account & Login'}
-        </button>
+        <Button type="submit" size="lg" block loading={submitting} icon="shield-check">
+          {submitting ? 'Creating account…' : 'Create account'}
+        </Button>
       </form>
 
-      <p style={{ marginTop: '20px' }}>
-        Already have an account? <Link to="/login">Login</Link>
-      </p>
-    </div>
+      <div className="auth__foot">
+        Already activated? <Link to="/login">Sign in</Link>
+      </div>
+    </AuthLayout>
   );
 }
