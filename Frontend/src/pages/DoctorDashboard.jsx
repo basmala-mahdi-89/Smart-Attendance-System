@@ -5,11 +5,26 @@ import client from '../api/client';
 import { connectSocket, disconnectSocket, getSocket } from '../api/socket';
 import { useNavigate } from 'react-router-dom';
 import { Html5QrcodeScanner } from 'html5-qrcode';
+import DashboardLayout from '../components/layout/DashboardLayout';
+import Button from '../components/ui/Button';
+import Icon from '../components/ui/Icon';
+import { Input, Select } from '../components/ui/Field';
+import { Alert, Badge, EmptyState, Loader, StatCard } from '../components/ui/Feedback';
+import { AnimatedNumber, ProgressBar } from '../components/ui/Motion';
+
+const initials = (name = '') =>
+  name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase() || 'ST';
 
 export default function DoctorDashboard() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  
+
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [liveUpdates, setLiveUpdates] = useState([]);
@@ -20,7 +35,7 @@ export default function DoctorDashboard() {
   const [attendanceList, setAttendanceList] = useState([]);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [currentTerm, setCurrentTerm] = useState('1');
-  
+
   const [selectedMajor, setSelectedMajor] = useState('all');
   const [selectedGrade, setSelectedGrade] = useState('all');
 
@@ -34,7 +49,9 @@ export default function DoctorDashboard() {
       try {
         const { data } = await client.get(`/doctor/sessions/${sessionId}/qr`);
         setQrToken(data.token);
-      } catch (err) { console.error('QR error:', err); }
+      } catch (err) {
+        console.error('QR error:', err);
+      }
     };
     fetchQR();
     if (qrIntervalRef.current) clearInterval(qrIntervalRef.current);
@@ -45,7 +62,9 @@ export default function DoctorDashboard() {
     try {
       const { data } = await client.get(`/doctor/sessions/${sessionId}/attendance-list`);
       setAttendanceList(data);
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const removeAttendance = async (attendanceId) => {
@@ -54,30 +73,44 @@ export default function DoctorDashboard() {
     try {
       await client.delete(`/doctor/sessions/${activeSession.id}/attendance/${attendanceId}`);
       loadAttendanceList(activeSession.id);
-    } catch (err) { alert(err.response?.data?.message || 'Failed to remove attendance'); }
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to remove attendance');
+    }
   };
 
   useEffect(() => {
     if (!showScanner) return;
     const timeout = setTimeout(() => {
-      const scanner = new Html5QrcodeScanner("doctor-reader", { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 }, false);
+      const scanner = new Html5QrcodeScanner(
+        'doctor-reader',
+        { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 },
+        false
+      );
       scanner.render(
         async (decodedText) => {
           scanner.clear().catch((e) => console.error(e));
           setShowScanner(false);
           try {
-            const res = await client.post(`/doctor/sessions/${activeSession.id}/scan-student-qr`, { qr_data: decodedText });
+            const res = await client.post(
+              `/doctor/sessions/${activeSession.id}/scan-student-qr`,
+              { qr_data: decodedText }
+            );
             setScanResult({ success: true, message: res.data.message, student: res.data.student });
             setTimeout(() => setScanResult(null), 3000);
           } catch (err) {
-            setScanResult({ success: false, message: err.response?.data?.message || 'Scan failed' });
+            setScanResult({
+              success: false,
+              message: err.response?.data?.message || 'Scan failed',
+            });
             setTimeout(() => setScanResult(null), 3000);
           }
         },
         () => {}
       );
     }, 200);
-    return () => { clearTimeout(timeout); };
+    return () => {
+      clearTimeout(timeout);
+    };
   }, [showScanner, activeSession]);
 
   useEffect(() => {
@@ -87,7 +120,7 @@ export default function DoctorDashboard() {
         const [coursesRes, sessionData, historyRes] = await Promise.all([
           client.get('/doctor/courses'),
           client.get('/doctor/active-session'),
-          client.get('/doctor/sessions/history')
+          client.get('/doctor/sessions/history'),
         ]);
         if (mounted) {
           setCourses(coursesRes.data.courses);
@@ -101,21 +134,36 @@ export default function DoctorDashboard() {
           const socket = getSocket();
           if (socket) socket.emit('join-session', sessionData.data.session.id);
         }
-      } catch (err) { console.error('Error loading initial data:', err); } finally { if (mounted) setLoading(false); }
+      } catch (err) {
+        console.error('Error loading initial data:', err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
     };
     loadInitialData();
 
     const socket = connectSocket();
     const handleUpdate = (data) => {
-      setLiveUpdates(prev => [data, ...prev].slice(0, 20));
-      setAttendanceList(prev => {
-        if (prev.some(item => item.student_id === data.student_id)) return prev;
-        return [{ attendance_id: data.attendance_id || Date.now(), student_id: data.student_id, full_name: data.full_name, method: data.method, created_at: data.at || new Date().toISOString() }, ...prev];
+      setLiveUpdates((prev) => [data, ...prev].slice(0, 20));
+      setAttendanceList((prev) => {
+        if (prev.some((item) => item.student_id === data.student_id)) return prev;
+        return [
+          {
+            attendance_id: data.attendance_id || Date.now(),
+            student_id: data.student_id,
+            full_name: data.full_name,
+            method: data.method,
+            created_at: data.at || new Date().toISOString(),
+          },
+          ...prev,
+        ];
       });
     };
     const handleRemove = (data) => {
       if (activeSession && data.session_id === activeSession.id) {
-        setAttendanceList(prev => prev.filter(item => item.attendance_id !== data.attendance_id));
+        setAttendanceList((prev) =>
+          prev.filter((item) => item.attendance_id !== data.attendance_id)
+        );
       }
     };
     socket.on('attendance-update', handleUpdate);
@@ -134,12 +182,17 @@ export default function DoctorDashboard() {
     try {
       const { data } = await client.post('/doctor/sessions', { course_id: courseId });
       setActiveSession(data.session);
-      setAttendanceList([]); setLiveUpdates([]); setManualResult(null); setScanResult(null);
+      setAttendanceList([]);
+      setLiveUpdates([]);
+      setManualResult(null);
+      setScanResult(null);
       const socket = getSocket();
       if (socket) socket.emit('join-session', data.session.id);
       startQrRefresh(data.session.id);
       setActiveTab('dashboard');
-    } catch (err) { alert(err.response?.data?.message || 'Failed to start session'); }
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to start session');
+    }
   };
 
   const endSession = async () => {
@@ -150,259 +203,582 @@ export default function DoctorDashboard() {
       const socket = getSocket();
       if (socket) socket.emit('leave-session', activeSession.id);
       if (qrIntervalRef.current) clearInterval(qrIntervalRef.current);
-      setActiveSession(null); setQrToken(''); setManualResult(null); setScanResult(null); setAttendanceList([]);
-    } catch (err) { alert('Failed to end session'); }
+      setActiveSession(null);
+      setQrToken('');
+      setManualResult(null);
+      setScanResult(null);
+      setAttendanceList([]);
+    } catch (err) {
+      alert('Failed to end session');
+    }
   };
 
   const handleManualAdd = async (e) => {
-    e.preventDefault(); setManualResult(null);
+    e.preventDefault();
+    setManualResult(null);
     try {
-      const { data } = await client.post(`/doctor/sessions/${activeSession.id}/manual-add`, { short_id: shortId });
+      const { data } = await client.post(`/doctor/sessions/${activeSession.id}/manual-add`, {
+        short_id: shortId,
+      });
       setManualResult({ success: true, message: data.message, student: data.attendance.full_name });
-      setShortId(''); loadAttendanceList(activeSession.id);
-    } catch (err) { setManualResult({ success: false, message: err.response?.data?.message || 'Failed to add manually' }); }
+      setShortId('');
+      loadAttendanceList(activeSession.id);
+    } catch (err) {
+      setManualResult({
+        success: false,
+        message: err.response?.data?.message || 'Failed to add manually',
+      });
+    }
   };
 
-  if (loading) return <div style={{ padding: '40px', textAlign: 'center' }}>Loading Doctor Dashboard...</div>;
+  const uniqueMajors = [...new Set(courses.map((c) => c.major_name))];
+  const uniqueGrades = ['1', '2', '3', '4'].filter((grade) =>
+    courses.some((c) => c.academic_year === grade)
+  );
 
-  const uniqueMajors = [...new Set(courses.map(c => c.major_name))];
-  const uniqueGrades = ['1', '2', '3', '4'].filter(grade => courses.some(c => c.academic_year === grade));
-
-  const filteredCourses = courses.filter(c => {
+  const filteredCourses = courses.filter((c) => {
     const matchMajor = selectedMajor === 'all' || c.major_name === selectedMajor;
     const matchGrade = selectedGrade === 'all' || c.academic_year === selectedGrade;
     return matchMajor && matchGrade;
   });
 
-  // ⚡ حساب الإحصائيات بناءً على الفلترة
   const dynamicStats = {
     totalCourses: filteredCourses.length,
     totalSessions: filteredCourses.reduce((sum, c) => sum + parseInt(c.total_sessions || 0), 0),
-    completedSessions: filteredCourses.reduce((sum, c) => sum + parseInt(c.completed_sessions || 0), 0),
+    completedSessions: filteredCourses.reduce(
+      (sum, c) => sum + parseInt(c.completed_sessions || 0),
+      0
+    ),
     activeSessions: filteredCourses.reduce((sum, c) => sum + parseInt(c.active_sessions || 0), 0),
-    uniqueStudents: filteredCourses.reduce((sum, c) => sum + parseInt(c.unique_students_attended || 0), 0)
+    uniqueStudents: filteredCourses.reduce(
+      (sum, c) => sum + parseInt(c.unique_students_attended || 0),
+      0
+    ),
   };
 
-  const styles = {
-    container: { padding: '30px', fontFamily: 'Segoe UI, sans-serif', backgroundColor: '#f4f7f6', minHeight: '100vh' },
-    header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', background: '#fff', padding: '20px', borderRadius: '10px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', flexWrap: 'wrap', gap: '10px' },
-    headerLeft: { display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' },
-    headerRight: { display: 'flex', gap: '10px', flexWrap: 'wrap' },
-    tabs: { display: 'flex', gap: '10px', marginBottom: '20px', flexWrap: 'wrap' },
-    tabBtn: (isActive) => ({ padding: '10px 20px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '15px', backgroundColor: isActive ? '#007bff' : '#e2e8f0', color: isActive ? '#fff' : '#333' }),
-    cardsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', marginBottom: '30px' },
-    card: { background: '#fff', padding: '20px', borderRadius: '10px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', textAlign: 'center', borderTop: '4px solid #007bff' },
-    cardTitle: { fontSize: '14px', color: '#666', margin: 0, textTransform: 'uppercase' },
-    cardValue: { fontSize: '32px', fontWeight: 'bold', color: '#2c3e50', margin: '10px 0 0 0' },
-    tableContainer: { background: '#fff', borderRadius: '10px', padding: '20px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', overflowX: 'auto', marginBottom: '30px' },
-    table: { width: '100%', borderCollapse: 'collapse', textAlign: 'left' },
-    th: { padding: '12px 15px', borderBottom: '2px solid #e2e8f0', color: '#4a5568', fontWeight: '600', backgroundColor: '#f8fafc' },
-    td: { padding: '12px 15px', borderBottom: '1px solid #e2e8f0', color: '#2d3748' },
-    btnPrimary: { padding: '10px 20px', borderRadius: '6px', border: 'none', cursor: 'pointer', backgroundColor: '#38a169', color: 'white', fontWeight: 'bold' },
-    btnBlue: { padding: '10px 20px', borderRadius: '6px', border: 'none', cursor: 'pointer', backgroundColor: '#3182ce', color: 'white', fontWeight: 'bold' },
-    btnPurple: { padding: '10px 20px', borderRadius: '6px', border: 'none', cursor: 'pointer', backgroundColor: '#805ad5', color: 'white', fontWeight: 'bold' },
-    btnRed: { padding: '10px 20px', borderRadius: '6px', border: 'none', cursor: 'pointer', backgroundColor: '#e53e3e', color: 'white', fontWeight: 'bold' },
-    btnSmall: { padding: '5px 10px', borderRadius: '4px', border: 'none', cursor: 'pointer', color: 'white', fontSize: '12px', marginRight: '5px', fontWeight: 'bold' },
-    input: { padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e0', fontSize: '16px' },
-    select: { padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e0', fontSize: '15px', minWidth: '150px', marginRight: '10px' },
-    badge: (active) => ({ padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold', backgroundColor: active ? '#c6f6d5' : '#fed7d7', color: active ? '#22543d' : '#822727' }),
-    termBadge: { background: '#ebf8ff', color: '#2b6cb0', padding: '6px 12px', borderRadius: '20px', fontWeight: 'bold', fontSize: '14px', border: '1px solid #90cdf4' }
-  };
+  const termLabel = currentTerm === '2' ? '2nd Term' : '1st Term';
+  const isHeadMode = user?.role === 'head';
+  const isDeanMode = user?.role === 'dean';
+
+  const nav = [
+    { key: 'dashboard', label: 'Live Session', icon: 'activity', section: 'Teaching' },
+    { key: 'courses', label: 'My Courses', icon: 'book', onClick: () => setActiveTab('courses') },
+    { key: 'history', label: 'Session History', icon: 'calendar', onClick: () => setActiveTab('history') },
+    { key: 'reports', label: 'Attendance Reports', icon: 'chart', to: '/doctor/reports', section: 'Management' },
+  ];
+  if (isHeadMode) nav.push({ key: 'head', label: 'Head Management', icon: 'users', to: '/head' });
+  if (isDeanMode) nav.push({ key: 'dean', label: 'Dean Console', icon: 'building', to: '/dean' });
+  nav.push({ key: 'signout', label: 'Sign out', icon: 'logout', onClick: logout, section: 'Account' });
+
+  nav[0].onClick = () => setActiveTab('dashboard');
+  nav[1].onClick = () => setActiveTab('courses');
+  nav[2].onClick = () => setActiveTab('history');
+
+  if (loading) {
+    return (
+      <DashboardLayout
+        user={user}
+        role="doctor"
+        nav={nav}
+        activeKey={activeTab}
+        title="Doctor workspace"
+        crumb="Doctor"
+        term={termLabel}
+        onLogout={logout}
+      >
+        <Loader label="Loading your courses…" />
+      </DashboardLayout>
+    );
+  }
 
   return (
-    <div style={styles.container}>
-      <header style={styles.header}>
-        <div style={styles.headerLeft}>
-          <div>
-            <h1 style={{ margin: 0, color: '#2c3e50' }}>Doctor Dashboard</h1>
-            <p style={{ margin: '5px 0 0 0', color: '#718096' }}>Welcome, <b>{user?.full_name}</b> ({user?.role})</p>
-          </div>
-          <div style={styles.termBadge}>
-            📅 Active Term: {currentTerm === '2' ? '2nd Term' : '1st Term'}
-          </div>
-        </div>
-        <div style={styles.headerRight}>
-          {user?.role === 'head' && (
-            <button onClick={() => navigate('/head')} style={styles.btnPurple}>Head Management</button>
-          )}
-          <button onClick={() => navigate('/doctor/reports')} style={styles.btnBlue}>Reports</button>
-          <button onClick={logout} style={styles.btnRed}>Logout</button>
-        </div>
-      </header>
-
-      <div style={styles.tabs}>
-        <button style={styles.tabBtn(activeTab === 'dashboard')} onClick={() => setActiveTab('dashboard')}>Dashboard</button>
-        <button style={styles.tabBtn(activeTab === 'courses')} onClick={() => setActiveTab('courses')}>My Courses</button>
-        <button style={styles.tabBtn(activeTab === 'history')} onClick={() => setActiveTab('history')}>Session History</button>
-      </div>
-
-      {activeTab === 'dashboard' && (
+    <DashboardLayout
+      user={user}
+      role="doctor"
+      nav={nav}
+      activeKey={activeTab}
+      title={
+        { dashboard: 'Live session', courses: 'My courses', history: 'Session history' }[activeTab] ||
+        'Doctor workspace'
+      }
+      crumb="Doctor"
+      term={termLabel}
+      onLogout={logout}
+      actions={
         <>
-          {/* ⚡ الفلاتر */}
-          <div style={{ marginBottom: '20px', display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-            <select style={styles.select} value={selectedMajor} onChange={(e) => setSelectedMajor(e.target.value)}>
-              <option value="all">All Majors</option>
-              {uniqueMajors.map(m => <option key={m} value={m}>{m}</option>)}
-            </select>
-            <select style={styles.select} value={selectedGrade} onChange={(e) => setSelectedGrade(e.target.value)}>
-              <option value="all">All Grades</option>
-              {uniqueGrades.map(g => <option key={g} value={g}>Year {g}</option>)}
-            </select>
+          {activeSession && (
+            <span className="chip chip--live">
+              <span className="dot-pulse" /> Live
+            </span>
+          )}
+          <Button variant="secondary" size="sm" icon="chart" onClick={() => navigate('/doctor/reports')}>
+            Reports
+          </Button>
+        </>
+      }
+    >
+      {activeTab === 'dashboard' && (
+        <div className="stack">
+          <div className="page-head" style={{ marginBottom: 0 }}>
+            <div className="page-head__text">
+              <h1>Teaching overview</h1>
+              <p>Start a session, share the rotating QR and watch check-ins arrive live.</p>
+            </div>
+            <div className="page-head__actions">
+              <Badge variant="blue">{filteredCourses.length} course(s)</Badge>
+              <Badge variant="neutral">{termLabel}</Badge>
+            </div>
           </div>
 
-          {/* ⚡ الإحصائيات الديناميكية */}
-          <div style={styles.cardsGrid}>
-            <div style={styles.card}><p style={styles.cardTitle}>Courses (Filtered)</p><p style={styles.cardValue}>{dynamicStats.totalCourses}</p></div>
-            <div style={styles.card}><p style={styles.cardTitle}>Total Sessions</p><p style={styles.cardValue}>{dynamicStats.totalSessions}</p></div>
-            <div style={styles.card}><p style={styles.cardTitle}>Completed</p><p style={styles.cardValue}>{dynamicStats.completedSessions}</p></div>
-            <div style={styles.card}><p style={styles.cardTitle}>Active</p><p style={styles.cardValue}>{dynamicStats.activeSessions}</p></div>
-            <div style={styles.card}><p style={styles.cardTitle}>Unique Students</p><p style={styles.cardValue}>{dynamicStats.uniqueStudents}</p></div>
+          <div className="toolbar">
+            <Select
+              label="Major"
+              value={selectedMajor}
+              onChange={(e) => setSelectedMajor(e.target.value)}
+              icon="layers"
+            >
+              <option value="all">All majors</option>
+              {uniqueMajors.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </Select>
+            <Select
+              label="Grade"
+              value={selectedGrade}
+              onChange={(e) => setSelectedGrade(e.target.value)}
+              icon="graduation-cap"
+            >
+              <option value="all">All grades</option>
+              {uniqueGrades.map((g) => (
+                <option key={g} value={g}>
+                  Year {g}
+                </option>
+              ))}
+            </Select>
+          </div>
+
+          <div className="kpi-grid stagger">
+            <StatCard
+              icon="book"
+              label="Courses"
+              value={<AnimatedNumber value={dynamicStats.totalCourses} />}
+              meta="After filters"
+              tone="navy"
+            />
+            <StatCard
+              icon="calendar"
+              label="Total sessions"
+              value={<AnimatedNumber value={dynamicStats.totalSessions} />}
+              meta="All held sessions"
+              tone="blue"
+            />
+            <StatCard
+              icon="check-circle"
+              label="Completed"
+              value={<AnimatedNumber value={dynamicStats.completedSessions} />}
+              meta="Closed sessions"
+              tone="teal"
+            />
+            <StatCard
+              icon="activity"
+              label="Active now"
+              value={<AnimatedNumber value={dynamicStats.activeSessions} />}
+              meta="Running sessions"
+              tone={dynamicStats.activeSessions > 0 ? 'olive' : 'default'}
+            />
+            <StatCard
+              icon="users"
+              label="Unique students"
+              value={<AnimatedNumber value={dynamicStats.uniqueStudents} />}
+              meta="Checked in at least once"
+              tone="default"
+            />
           </div>
 
           {activeSession && (
-            <div style={{ background: '#fff', borderRadius: '10px', padding: '25px', marginBottom: '30px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', border: '2px solid #38a169' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
-                <h2 style={{ margin: 0, color: '#2c3e50' }}>🟢 Active Session #{activeSession.id} - {activeSession.course_code}</h2>
-                <span style={styles.badge(true)}>ACTIVE</span>
-              </div>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '25px' }}>
-                {qrToken && (
-                  <div style={{ textAlign: 'center', background: '#f8fafc', padding: '20px', borderRadius: '8px' }}>
-                    <h3 style={{ marginTop: 0 }}>Session QR Code</h3>
-                    <div style={{ background: 'white', padding: '15px', display: 'inline-block', borderRadius: '10px' }}>
-                      <QRCodeSVG value={qrToken} size={220} />
-                    </div>
-                    <p style={{ fontSize: '13px', color: '#718096', marginTop: '10px' }}>Refreshing every 5 seconds</p>
+            <section className="session-panel anim-up">
+              <div className="session-panel__head">
+                <div className="session-panel__title">
+                  <span className="live-badge">
+                    <span className="dot-pulse" /> LIVE
+                  </span>
+                  <div>
+                    <h2>
+                      Session #{activeSession.id} · {activeSession.course_code}
+                    </h2>
+                    <p>QR rotates every 5 seconds · {attendanceList.length} checked in</p>
                   </div>
-                )}
+                </div>
+                <Button variant="danger" size="sm" icon="stop" onClick={endSession}>
+                  End session
+                </Button>
+              </div>
 
-                <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '8px', border: '2px solid #805ad5' }}>
-                  <h3 style={{ marginTop: 0, color: '#553c9a' }}>📱 Scan Student's Personal QR</h3>
-                  {!showScanner ? (
-                    <button onClick={() => setShowScanner(true)} style={{ ...styles.btnPurple, marginTop: '15px' }}>Start Camera Scanner</button>
+              <div className="session-panel__body">
+                <div className="session-card-dark" style={{ textAlign: 'center' }}>
+                  <h3>
+                    <Icon name="qr" size={16} /> Session QR
+                  </h3>
+                  {qrToken ? (
+                    <>
+                      <div className="qr-frame">
+                        <QRCodeSVG value={qrToken} size={196} />
+                      </div>
+                      <div className="qr-frame__foot">
+                        <Icon name="refresh" size={13} /> Refreshing every 5 seconds
+                      </div>
+                    </>
                   ) : (
-                    <div style={{ marginTop: '15px' }}>
-                      <div id="doctor-reader" style={{ width: '100%', borderRadius: '8px', overflow: 'hidden' }}></div>
-                      <button onClick={() => setShowScanner(false)} style={{ ...styles.btnRed, marginTop: '10px', width: '100%' }}>Stop Scanner</button>
-                    </div>
-                  )}
-                  {scanResult && (
-                    <div style={{ marginTop: '12px', padding: '12px', background: scanResult.success ? '#c6f6d5' : '#fed7d7', borderRadius: '6px', color: scanResult.success ? '#22543d' : '#822727' }}>
-                      {scanResult.success ? '✅' : '❌'} {scanResult.message}
+                    <div className="feed__empty" style={{ marginTop: 12 }}>
+                      <Icon name="refresh" size={18} /> Generating secure token…
                     </div>
                   )}
                 </div>
 
-                <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '8px' }}>
-                  <h3 style={{ marginTop: 0 }}>Manual Attendance</h3>
-                  <form onSubmit={handleManualAdd} style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
-                    <input type="text" placeholder="12345" value={shortId} onChange={(e) => setShortId(e.target.value.replace(/\D/g, ''))} maxLength={5} style={{ ...styles.input, flex: 1, textAlign: 'center', fontSize: '20px' }} />
-                    <button type="submit" style={styles.btnPrimary}>Add</button>
-                  </form>
-                  {manualResult && (
-                    <div style={{ padding: '12px', background: manualResult.success ? '#c6f6d5' : '#fed7d7', borderRadius: '6px' }}>
-                      {manualResult.success ? '✅' : '❌'} {manualResult.message}
-                    </div>
-                  )}
+                <div className="stack">
+                  <div className="session-card-dark">
+                    <h3>
+                      <Icon name="smartphone" size={16} /> Scan a student's personal QR
+                    </h3>
+                    {!showScanner ? (
+                      <Button
+                        variant="white"
+                        size="sm"
+                        icon="camera"
+                        style={{ marginTop: 12 }}
+                        onClick={() => setShowScanner(true)}
+                      >
+                        Start camera scanner
+                      </Button>
+                    ) : (
+                      <div style={{ marginTop: 12 }}>
+                        <div className="scanner-shell">
+                          <div id="doctor-reader" />
+                        </div>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          block
+                          icon="x"
+                          style={{ marginTop: 10 }}
+                          onClick={() => setShowScanner(false)}
+                        >
+                          Stop scanner
+                        </Button>
+                      </div>
+                    )}
+                    {scanResult && (
+                      <div style={{ marginTop: 12 }}>
+                        <Alert variant={scanResult.success ? 'success' : 'error'}>
+                          {scanResult.message}
+                        </Alert>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="session-card-dark">
+                    <h3>
+                      <Icon name="key" size={16} /> Manual attendance
+                    </h3>
+                    <p style={{ marginTop: 4, fontSize: '0.72rem', color: 'rgba(255,255,255,0.5)' }}>
+                      Enter the last 5 digits of the student's national ID.
+                    </p>
+                    <form className="code-entry" onSubmit={handleManualAdd}>
+                      <input
+                        className="input"
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="12345"
+                        value={shortId}
+                        onChange={(e) => setShortId(e.target.value.replace(/\D/g, ''))}
+                        maxLength={5}
+                        aria-label="Student short ID"
+                      />
+                      <Button type="submit" variant="success" icon="plus">
+                        Add
+                      </Button>
+                    </form>
+                    {manualResult && (
+                      <div style={{ marginTop: 12 }}>
+                        <Alert variant={manualResult.success ? 'success' : 'error'}>
+                          {manualResult.message}
+                          {manualResult.student ? ` · ${manualResult.student}` : ''}
+                        </Alert>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="session-card-dark">
+                    <h3>
+                      <Icon name="zap" size={16} /> Live check-ins
+                    </h3>
+                    {liveUpdates.length === 0 ? (
+                      <div className="feed__empty" style={{ marginTop: 12 }}>
+                        <Icon name="activity" size={18} />
+                        Waiting for the first check-in…
+                      </div>
+                    ) : (
+                      <div className="feed" style={{ marginTop: 12 }}>
+                        {liveUpdates.map((u, i) => (
+                          <div key={`${u.student_id}-${i}`} className="feed__item">
+                            <span className="feed__avatar">{initials(u.full_name)}</span>
+                            <div style={{ minWidth: 0 }}>
+                              <b>{u.full_name}</b>
+                              <span>via {u.method}</span>
+                            </div>
+                            <time>{new Date(u.at).toLocaleTimeString()}</time>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-              <button onClick={endSession} style={{ ...styles.btnRed, marginTop: '25px' }}>End Session</button>
-            </div>
+            </section>
           )}
 
           {!activeSession && (
-            <div style={styles.tableContainer}>
-              <h2 style={{ marginTop: 0, color: '#2c3e50' }}>Start New Session</h2>
-              <table style={styles.table}>
-                <thead>
-                  <tr><th style={styles.th}>Course Code</th><th style={styles.th}>Course Name</th><th style={styles.th}>Major</th><th style={styles.th}>Year / Term</th><th style={styles.th}>Students</th><th style={styles.th}>Action</th></tr>
-                </thead>
-                <tbody>
-                  {filteredCourses.length === 0 ? (
-                    <tr><td colSpan="6" style={{ textAlign: 'center', padding: '20px', color: 'gray' }}>No courses found.</td></tr>
-                  ) : (
-                    filteredCourses.map(c => (
-                      <tr key={c.id}>
-                        <td style={styles.td}><b>{c.course_code}</b></td>
-                        <td style={styles.td}>{c.course_name}</td>
-                        <td style={styles.td}>{c.major_name}</td>
-                        <td style={styles.td}>Year {c.academic_year} - Term {c.term || '1'}</td>
-                        <td style={styles.td}>{c.student_count}</td>
-                        <td style={styles.td}><button onClick={() => startSession(c.id)} style={styles.btnPrimary}>Start Session</button></td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+            <section className="card">
+              <div className="data-bar">
+                <div>
+                  <h2>Start a new session</h2>
+                  <p>Pick one of your courses to open a live attendance session.</p>
+                </div>
+                <Badge variant="neutral">{filteredCourses.length} available</Badge>
+              </div>
+              <div className="card__body">
+                {filteredCourses.length === 0 ? (
+                  <EmptyState
+                    icon="book"
+                    title="No courses match these filters"
+                    description="Change the major or grade filter to see your courses."
+                  />
+                ) : (
+                  <div className="course-grid">
+                    {filteredCourses.map((c) => (
+                      <article key={c.id} className="course-card">
+                        <div className="course-card__top">
+                          <div>
+                            <span className="course-card__code">{c.course_code}</span>
+                            <h3>{c.course_name}</h3>
+                          </div>
+                          <Badge variant="neutral">{c.major_name}</Badge>
+                        </div>
+                        <div className="course-card__meta">
+                          <span>
+                            <Icon name="graduation-cap" size={14} /> Year {c.academic_year}
+                          </span>
+                          <span>
+                            <Icon name="calendar" size={14} /> Term {c.term || '1'}
+                          </span>
+                          <span>
+                            <Icon name="users" size={14} /> {c.student_count} students
+                          </span>
+                        </div>
+                        <div className="course-card__actions">
+                          <Button size="sm" icon="play" onClick={() => startSession(c.id)}>
+                            Start session
+                          </Button>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </section>
           )}
 
-          <div style={styles.tableContainer}>
-            <h2 style={{ marginTop: 0, color: '#2c3e50' }}>⚡ Live Attendance</h2>
-            {liveUpdates.length === 0 ? (
-              <p style={{ color: '#718096' }}>No live updates yet.</p>
-            ) : (
-              <div style={{ display: 'grid', gap: '8px' }}>
-                {liveUpdates.map((u, i) => (
-                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 15px', background: '#ebf8ff', borderRadius: '6px', borderLeft: '4px solid #3182ce' }}>
-                    <span>👤 <b>{u.full_name}</b> marked present via <b>{u.method}</b></span>
-                    <span style={{ color: '#718096', fontSize: '13px' }}>{new Date(u.at).toLocaleTimeString()}</span>
-                  </div>
-                ))}
+          {activeSession && attendanceList.length > 0 && (
+            <section className="card">
+              <div className="data-bar">
+                <div>
+                  <h2>Checked-in students</h2>
+                  <p>Live list for session #{activeSession.id}. Remove a record if it was a mistake.</p>
+                </div>
+                <Badge variant="success">{attendanceList.length} present</Badge>
               </div>
-            )}
-          </div>
-        </>
+              <div className="table-wrap">
+                <table className="table table--compact">
+                  <thead>
+                    <tr>
+                      <th>Student</th>
+                      <th>Method</th>
+                      <th>Checked in</th>
+                      <th style={{ width: 90 }}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {attendanceList.map((a) => (
+                      <tr key={a.attendance_id}>
+                        <td>
+                          <div className="person">
+                            <span className="avatar" style={{ width: 32, height: 32, fontSize: '0.66rem' }}>
+                              {initials(a.full_name)}
+                            </span>
+                            <div className="person__meta">
+                              <b>{a.full_name}</b>
+                              <span>ID #{a.student_id}</span>
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <Badge variant={a.method === 'manual' ? 'warning' : 'blue'}>{a.method}</Badge>
+                        </td>
+                        <td className="muted-cell nowrap">
+                          {a.created_at ? new Date(a.created_at).toLocaleTimeString() : '—'}
+                        </td>
+                        <td>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            icon="trash"
+                            aria-label={`Remove attendance for ${a.full_name}`}
+                            onClick={() => removeAttendance(a.attendance_id)}
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
+        </div>
       )}
 
       {activeTab === 'courses' && (
-        <div style={styles.tableContainer}>
-          <h2 style={{ marginTop: 0, color: '#2c3e50' }}>My Courses</h2>
-          <table style={styles.table}>
-            <thead>
-              <tr><th style={styles.th}>Course</th><th style={styles.th}>Major</th><th style={styles.th}>Year / Term</th><th style={styles.th}>Students</th><th style={styles.th}>Engineers</th><th style={styles.th}>Role</th></tr>
-            </thead>
-            <tbody>
-              {courses.map(c => (
-                <tr key={c.id}>
-                  <td style={styles.td}><b>{c.course_code}</b> - {c.course_name}</td>
-                  <td style={styles.td}>{c.major_name}</td>
-                  <td style={styles.td}>Year {c.academic_year} - Term {c.term || '1'}</td>
-                  <td style={styles.td}>{c.student_count}</td>
-                  <td style={styles.td}>{c.engineers?.join(', ') || 'None'}</td>
-                  <td style={styles.td}><span style={{ textTransform: 'capitalize' }}>{c.role_in_course}</span> {c.is_primary && '(Primary)'}</td>
+        <div className="card">
+          <div className="data-bar">
+            <div>
+              <h2>My courses</h2>
+              <p>Everything you teach this term, including assigned engineers.</p>
+            </div>
+            <Badge variant="blue">{courses.length} course(s)</Badge>
+          </div>
+          <div className="table-wrap">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Course</th>
+                  <th>Major</th>
+                  <th>Year / Term</th>
+                  <th>Students</th>
+                  <th>Engineers</th>
+                  <th>Your role</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {courses.map((c) => (
+                  <tr key={c.id}>
+                    <td>
+                      <span className="strong">{c.course_code}</span>
+                      <span className="muted-cell"> — {c.course_name}</span>
+                    </td>
+                    <td className="muted-cell">{c.major_name}</td>
+                    <td className="muted-cell nowrap">Year {c.academic_year} · Term {c.term || '1'}</td>
+                    <td className="num">{c.student_count}</td>
+                    <td className="muted-cell">{c.engineers?.join(', ') || 'None'}</td>
+                    <td>
+                      <Badge variant="blue">{c.role_in_course}</Badge>
+                      {c.is_primary && <Badge variant="success" className="badge--dot">Primary</Badge>}
+                    </td>
+                  </tr>
+                ))}
+                {courses.length === 0 && (
+                  <tr>
+                    <td colSpan="6">
+                      <EmptyState icon="book" title="No courses assigned yet" />
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
       {activeTab === 'history' && (
-        <div style={styles.tableContainer}>
-          <h2 style={{ marginTop: 0, color: '#2c3e50' }}>Session History</h2>
-          <table style={styles.table}>
-            <thead>
-              <tr><th style={styles.th}>Session ID</th><th style={styles.th}>Course</th><th style={styles.th}>Date</th><th style={styles.th}>Start Time</th><th style={styles.th}>End Time</th><th style={styles.th}>Type</th><th style={styles.th}>Attendance</th><th style={styles.th}>Status</th></tr>
-            </thead>
-            <tbody>
-              {sessionHistory.map(s => (
-                <tr key={s.id}>
-                  <td style={styles.td}>#{s.id}</td>
-                  <td style={styles.td}><b>{s.course_code}</b> - {s.course_name}</td>
-                  <td style={styles.td}>{s.session_date}</td>
-                  <td style={styles.td}>{s.start_time ? new Date(s.start_time).toLocaleTimeString() : '-'}</td>
-                  <td style={styles.td}>{s.end_time ? new Date(s.end_time).toLocaleTimeString() : '-'}</td>
-                  <td style={styles.td}><span style={{ textTransform: 'capitalize' }}>{s.type}</span></td>
-                  <td style={styles.td}>{s.attendance_count} / {s.enrolled_count}</td>
-                  <td style={styles.td}><span style={styles.badge(s.is_active)}>{s.is_active ? 'Active' : 'Completed'}</span></td>
+        <div className="card">
+          <div className="data-bar">
+            <div>
+              <h2>Session history</h2>
+              <p>Every session you opened, with attendance totals.</p>
+            </div>
+            <Badge variant="blue">{sessionHistory.length} session(s)</Badge>
+          </div>
+          <div className="table-wrap">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Course</th>
+                  <th>Date</th>
+                  <th>Start</th>
+                  <th>End</th>
+                  <th>Type</th>
+                  <th style={{ minWidth: 140 }}>Attendance</th>
+                  <th>Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {sessionHistory.map((s) => {
+                  const pct =
+                    s.enrolled_count > 0
+                      ? Math.round((s.attendance_count / s.enrolled_count) * 100)
+                      : 0;
+                  return (
+                    <tr key={s.id}>
+                      <td className="muted-cell">#{s.id}</td>
+                      <td>
+                        <span className="strong">{s.course_code}</span>
+                        <span className="muted-cell"> — {s.course_name}</span>
+                      </td>
+                      <td className="nowrap">{s.session_date}</td>
+                      <td className="muted-cell nowrap">
+                        {s.start_time ? new Date(s.start_time).toLocaleTimeString() : '—'}
+                      </td>
+                      <td className="muted-cell nowrap">
+                        {s.end_time ? new Date(s.end_time).toLocaleTimeString() : '—'}
+                      </td>
+                      <td>
+                        <Badge variant="neutral">{s.type}</Badge>
+                      </td>
+                      <td>
+                        <div className="row" style={{ gap: 8 }}>
+                          <span className="num" style={{ fontSize: '0.78rem' }}>
+                            {s.attendance_count}/{s.enrolled_count}
+                          </span>
+                          <span style={{ flex: 1, minWidth: 60 }}>
+                            <ProgressBar value={pct} tone={pct >= 75 ? 'success' : 'warning'} />
+                          </span>
+                        </div>
+                      </td>
+                      <td>
+                        <Badge variant={s.is_active ? 'success' : 'neutral'} dot>
+                          {s.is_active ? 'Active' : 'Completed'}
+                        </Badge>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {sessionHistory.length === 0 && (
+                  <tr>
+                    <td colSpan="8">
+                      <EmptyState
+                        icon="calendar"
+                        title="No sessions yet"
+                        description="Start your first session from the live session tab."
+                      />
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
-    </div>
+    </DashboardLayout>
   );
 }
