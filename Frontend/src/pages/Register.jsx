@@ -99,7 +99,7 @@ export default function Register() {
               required
             />
             <Input
-              label="Full name"
+              label="Full English Name"
               icon="user"
               placeholder="As written in university records"
               value={formData.full_name}
