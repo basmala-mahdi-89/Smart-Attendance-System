@@ -3,8 +3,8 @@ const bcrypt = require('bcryptjs');
 
 async function resetPassword() {
   // ⚠️ حط هنا الرقم القومي بتاع الشخص اللي عايز تدخل بحسابه
-  const nationalId = '40000000000001'; 
-  const newPassword = 'Engineer@12345';
+  const nationalId = '31203281301138'; 
+  const newPassword = 'Student@12345';
 
   try {
     const hash = await bcrypt.hash(newPassword, 10);
