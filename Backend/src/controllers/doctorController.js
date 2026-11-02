@@ -194,7 +194,7 @@ exports.getMyCourses = async (req, res) => {
        FROM course_staff cs
        JOIN courses c ON cs.course_id = c.id
        JOIN majors m ON c.major_id = m.id
-       WHERE cs.staff_id = $1 AND c.term = m.current_term
+       WHERE cs.staff_id = $1
        ORDER BY c.academic_year, c.course_code`,
       [doctorId]
     );
