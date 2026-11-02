@@ -90,18 +90,18 @@ export default function DoctorDashboard() {
       const { data } = await client.get(`/doctor/sessions/${session.id}/attendance`);
       setAttendees(data.attendance || data);
     } catch (err) {
-      notify(err.response?.data?.message || 'Failed to load attendees', 'error');
+      notify(err.response?.data?.message || (lang === 'ar' ? 'فشل تحميل الحضور' : 'Failed to load attendees'), 'error');
     }
   };
 
   const removeAttendance = async (attendanceId) => {
     if (!activeSession) return;
-    if (!window.confirm('Remove this attendance record?')) return;
+    if (!window.confirm(lang === 'ar' ? 'هل تريد إزالة سجل الحضور هذا؟' : 'Remove this attendance record?')) return;
     try {
       await client.delete(`/doctor/sessions/${activeSession.id}/attendance/${attendanceId}`);
       loadAttendanceList(activeSession.id);
     } catch (err) {
-      notify(err.response?.data?.message || 'Failed to remove attendance');
+      notify(err.response?.data?.message || (lang === 'ar' ? 'فشل إزالة الحضور' : 'Failed to remove attendance'));
     }
   };
 
@@ -218,7 +218,7 @@ export default function DoctorDashboard() {
       startQrRefresh(data.session.id);
       setActiveTab('dashboard');
     } catch (err) {
-      notify(err.response?.data?.message || 'Failed to start session');
+      notify(err.response?.data?.message || (lang === 'ar' ? 'فشل بدء الجلسة' : 'Failed to start session'));
     }
   };
 
@@ -236,7 +236,7 @@ export default function DoctorDashboard() {
       setScanResult(null);
       setAttendanceList([]);
     } catch (err) {
-      notify('Failed to end session');
+      notify(lang === 'ar' ? 'فشل إنهاء الجلسة' : 'Failed to end session');
     }
   };
 
@@ -283,7 +283,7 @@ export default function DoctorDashboard() {
     ),
   };
 
-  const termLabel = currentTerm === '2' ? '2nd Term' : '1st Term';
+  const termLabel = currentTerm === '2' ? (lang === 'ar' ? 'الفصل الثاني' : '2nd Term') : lang === 'ar' ? 'الفصل الأول' : '1st Term';
   const isHeadMode = user?.role === 'head';
   const isDeanMode = user?.role === 'dean';
 
@@ -324,12 +324,12 @@ export default function DoctorDashboard() {
         role="doctor"
         nav={nav}
         activeKey={activeTab}
-        title="Doctor workspace"
-        crumb="Doctor"
+        title={{ en: 'Doctor workspace', ar: 'مساحة الدكتور' }}
+        crumb={{ en: 'Doctor', ar: 'الدكتور' }}
         term={termLabel}
         onLogout={logout}
       >
-        <Loader label="Loading your courses…" />
+        <Loader label={lang === 'ar' ? 'جارٍ تحميل مقرراتك…' : 'Loading your courses…'} />
       </DashboardLayout>
       </>
     );
@@ -346,22 +346,22 @@ export default function DoctorDashboard() {
       title={
         {
           dashboard: { en: 'Live session', ar: 'الجلسة المباشرة' },
-          courses: { en: 'My courses', ar: 'مصاديقي' },
+          courses: { en: 'My courses', ar: 'مقرراتي' },
           history: { en: 'Session history', ar: 'سجل الجلسات' },
-        }[activeTab]?.[lang] || { en: 'Doctor workspace', ar: 'مساحة الأطباء' }[lang]
+        }[activeTab]?.[lang] || { en: 'Doctor workspace', ar: 'مساحة الدكاترة' }[lang]
       }
-      crumb="Doctor"
+      crumb={{ en: 'Doctor', ar: 'الدكتور' }}
       term={termLabel}
       onLogout={logout}
       actions={
         <>
           {activeSession && (
             <span className="chip chip--live">
-              <span className="dot-pulse" /> Live
+              <span className="dot-pulse" /> {lang === 'ar' ? 'مباشر' : 'Live'}
             </span>
           )}
           <Button variant="secondary" size="sm" icon="chart" onClick={() => navigate('/doctor/reports')}>
-            Reports
+            {lang === 'ar' ? 'التقارير' : 'Reports'}
           </Button>
         </>
       }
@@ -370,23 +370,23 @@ export default function DoctorDashboard() {
         <div className="stack">
           <div className="page-head" style={{ marginBottom: 0 }}>
             <div className="page-head__text">
-              <h1>Teaching overview</h1>
-              <p>Start a session, share the rotating QR and watch check-ins arrive live.</p>
+              <h1>{lang === 'ar' ? 'نظرة عامة على التدريس' : 'Teaching overview'}</h1>
+              <p>{lang === 'ar' ? 'ابدأ جلسة، شارك رمز QR المتحرك، وشاهد الحضور يصلك مباشرة.' : 'Start a session, share the rotating QR and watch check-ins arrive live.'}</p>
             </div>
             <div className="page-head__actions">
-              <Badge variant="blue">{filteredCourses.length} course(s)</Badge>
+              <Badge variant="blue">{filteredCourses.length} {lang === 'ar' ? 'مقرر' : 'course(s)'}</Badge>
               <Badge variant="neutral">{termLabel}</Badge>
             </div>
           </div>
 
           <div className="toolbar">
             <Select
-              label="Major"
+              label={lang === 'ar' ? 'التخصص' : 'Major'}
               value={selectedMajor}
               onChange={(e) => setSelectedMajor(e.target.value)}
               icon="layers"
             >
-              <option value="all">All majors</option>
+              <option value="all">{lang === 'ar' ? 'كل التخصصات' : 'All majors'}</option>
               {uniqueMajors.map((m) => (
                 <option key={m} value={m}>
                   {m}
@@ -394,15 +394,15 @@ export default function DoctorDashboard() {
               ))}
             </Select>
             <Select
-              label="Grade"
+              label={lang === 'ar' ? 'الصف' : 'Grade'}
               value={selectedGrade}
               onChange={(e) => setSelectedGrade(e.target.value)}
               icon="graduation-cap"
             >
-              <option value="all">All grades</option>
+              <option value="all">{lang === 'ar' ? 'كل الصفوف' : 'All grades'}</option>
               {uniqueGrades.map((g) => (
                 <option key={g} value={g}>
-                  Year {g}
+                  {lang === 'ar' ? `الصف ${g}` : `Year ${g}`}
                 </option>
               ))}
             </Select>
@@ -411,37 +411,37 @@ export default function DoctorDashboard() {
           <div className="kpi-grid stagger">
             <StatCard
               icon="book"
-              label="Courses"
+              label={lang === 'ar' ? 'المقررات' : 'Courses'}
               value={<AnimatedNumber value={dynamicStats.totalCourses} />}
-              meta="After filters"
+              meta={lang === 'ar' ? 'بعد الفلاتر' : 'After filters'}
               tone="navy"
             />
             <StatCard
               icon="calendar"
-              label="Total sessions"
+              label={lang === 'ar' ? 'إجمالي الجلسات' : 'Total sessions'}
               value={<AnimatedNumber value={dynamicStats.totalSessions} />}
-              meta="All held sessions"
+              meta={lang === 'ar' ? 'كل الجلسات المعقدة' : 'All held sessions'}
               tone="blue"
             />
             <StatCard
               icon="check-circle"
-              label="Completed"
+              label={lang === 'ar' ? 'مكتملة' : 'Completed'}
               value={<AnimatedNumber value={dynamicStats.completedSessions} />}
-              meta="Closed sessions"
+              meta={lang === 'ar' ? 'الجلسات المغلقة' : 'Closed sessions'}
               tone="teal"
             />
             <StatCard
               icon="activity"
-              label="Active now"
+              label={lang === 'ar' ? 'نشطة الآن' : 'Active now'}
               value={<AnimatedNumber value={dynamicStats.activeSessions} />}
-              meta="Running sessions"
+              meta={lang === 'ar' ? 'الجلسات الجارية' : 'Running sessions'}
               tone={dynamicStats.activeSessions > 0 ? 'olive' : 'default'}
             />
             <StatCard
               icon="users"
-              label="Unique students"
+              label={lang === 'ar' ? 'طلاب فريدون' : 'Unique students'}
               value={<AnimatedNumber value={dynamicStats.uniqueStudents} />}
-              meta="Checked in at least once"
+              meta={lang === 'ar' ? 'حضروا مرة واحدة على الأقل' : 'Checked in at least once'}
               tone="default"
             />
           </div>
@@ -455,20 +455,20 @@ export default function DoctorDashboard() {
                   </span>
                   <div>
                     <h2>
-                      Session #{activeSession.id} · {activeSession.course_code}
+                      {lang === 'ar' ? `الجلسة رقم ${activeSession.id}` : `Session #${activeSession.id}`} · {activeSession.course_code}
                     </h2>
-                    <p>QR rotates every 5 seconds · {attendanceList.length} checked in</p>
+                    <p>{lang === 'ar' ? `رمز QR يتجدد كل 5 ثوانٍ · ${attendanceList.length} حضور` : `QR rotates every 5 seconds · ${attendanceList.length} checked in`}</p>
                   </div>
                 </div>
                 <Button variant="danger" size="sm" icon="stop" onClick={endSession}>
-                  End session
+                  {lang === 'ar' ? 'إنهاء الجلسة' : 'End session'}
                 </Button>
               </div>
 
               <div className="session-panel__body">
                 <div className="session-card-dark" style={{ textAlign: 'center' }}>
                   <h3>
-                    <Icon name="qr" size={16} /> Session QR
+                    <Icon name="qr" size={16} /> {lang === 'ar' ? 'رمز الجلسة' : 'Session QR'}
                   </h3>
                   {qrToken ? (
                     <>
@@ -476,12 +476,12 @@ export default function DoctorDashboard() {
                         <QRCodeSVG value={qrToken} size={196} />
                       </div>
                       <div className="qr-frame__foot">
-                        <Icon name="refresh" size={13} /> Refreshing every 5 seconds
+                        <Icon name="refresh" size={13} /> {lang === 'ar' ? 'يتجدد كل 5 ثوانٍ' : 'Refreshing every 5 seconds'}
                       </div>
                     </>
                   ) : (
                     <div className="feed__empty" style={{ marginTop: 12 }}>
-                      <Icon name="refresh" size={18} /> Generating secure token…
+                      <Icon name="refresh" size={18} /> {lang === 'ar' ? 'جارٍ توليد الرمز الآمن…' : 'Generating secure token…'}
                     </div>
                   )}
                 </div>
@@ -489,7 +489,7 @@ export default function DoctorDashboard() {
                 <div className="stack">
                   <div className="session-card-dark">
                     <h3>
-                      <Icon name="smartphone" size={16} /> Scan a student's personal QR
+                      <Icon name="smartphone" size={16} /> {lang === 'ar' ? 'امسح الرمز الشخصي للطالب' : "Scan a student's personal QR"}
                     </h3>
                     {!showScanner ? (
                       <Button
@@ -499,7 +499,7 @@ export default function DoctorDashboard() {
                         style={{ marginTop: 12 }}
                         onClick={() => setShowScanner(true)}
                       >
-                        Start camera scanner
+                        {lang === 'ar' ? 'تشغيل ماسح الكاميرا' : 'Start camera scanner'}
                       </Button>
                     ) : (
                       <div style={{ marginTop: 12 }}>
@@ -514,7 +514,7 @@ export default function DoctorDashboard() {
                           style={{ marginTop: 10 }}
                           onClick={() => setShowScanner(false)}
                         >
-                          Stop scanner
+                          {lang === 'ar' ? 'إيقاف الماسح' : 'Stop scanner'}
                         </Button>
                       </div>
                     )}
@@ -529,10 +529,10 @@ export default function DoctorDashboard() {
 
                   <div className="session-card-dark">
                     <h3>
-                      <Icon name="key" size={16} /> Manual attendance
+                      <Icon name="key" size={16} /> {lang === 'ar' ? 'الحضور اليدوي' : 'Manual attendance'}
                     </h3>
                     <p style={{ marginTop: 4, fontSize: '0.72rem', color: 'rgba(255,255,255,0.5)' }}>
-                      Enter the last 5 digits of the student's national ID.
+                      {lang === 'ar' ? 'أدخل آخر 5 أرقام من البطاقة الوطنية للطالب.' : "Enter the last 5 digits of the student's national ID."}
                     </p>
                     <form className="code-entry" onSubmit={handleManualAdd}>
                       <input
@@ -543,10 +543,10 @@ export default function DoctorDashboard() {
                         value={shortId}
                         onChange={(e) => setShortId(e.target.value.replace(/\D/g, ''))}
                         maxLength={5}
-                        aria-label="Student short ID"
+                        aria-label={lang === 'ar' ? 'معرف الطالب المختصر' : 'Student short ID'}
                       />
                       <Button type="submit" variant="success" icon="plus">
-                        Add
+                        {lang === 'ar' ? 'إضافة' : 'Add'}
                       </Button>
                     </form>
                     {manualResult && (
@@ -561,21 +561,21 @@ export default function DoctorDashboard() {
 
                   <div className="session-card-dark">
                     <h3>
-                      <Icon name="zap" size={16} /> Live check-ins
+                      <Icon name="zap" size={16} /> {lang === 'ar' ? 'الحضور المباشر' : 'Live check-ins'}
                     </h3>
                     {liveUpdates.length === 0 ? (
                       <div className="feed__empty" style={{ marginTop: 12 }}>
                         <Icon name="activity" size={18} />
-                        Waiting for the first check-in…
+                        {lang === 'ar' ? 'بانتظار أول حضور…' : 'Waiting for the first check-in…'}
                       </div>
                     ) : (
                       <div className="feed" style={{ marginTop: 12 }}>
                         {liveUpdates.map((u, i) => (
                           <div key={`${u.student_id}-${i}`} className="feed__item">
-                            <span className="feed__avatar">{initials(u.full_name)}</span>
+                            <span className="feed__avatar">{initials(lang === 'ar' && u.full_name_ar ? u.full_name_ar : u.full_name)}</span>
                             <div style={{ minWidth: 0 }}>
-                              <b>{u.full_name}</b>
-                              <span>via {u.method}</span>
+                              <b>{lang === 'ar' && u.full_name_ar ? u.full_name_ar : u.full_name}</b>
+                              <span>{lang === 'ar' ? 'عبر' : 'via'} {u.method}</span>
                             </div>
                             <time>{new Date(u.at).toLocaleTimeString()}</time>
                           </div>
@@ -592,17 +592,17 @@ export default function DoctorDashboard() {
             <section className="card">
               <div className="data-bar">
                 <div>
-                  <h2>Start a new session</h2>
-                  <p>Pick one of your courses to open a live attendance session.</p>
+                  <h2>{lang === 'ar' ? 'ابدأ جلسة جديدة' : 'Start a new session'}</h2>
+                  <p>{lang === 'ar' ? 'اختر واحدة من مقرراتك لفتح جلسة حضور مباشرة.' : 'Pick one of your courses to open a live attendance session.'}</p>
                 </div>
-                <Badge variant="neutral">{filteredCourses.length} available</Badge>
+                <Badge variant="neutral">{filteredCourses.length} {lang === 'ar' ? 'متاح' : 'available'}</Badge>
               </div>
               <div className="card__body">
                 {filteredCourses.length === 0 ? (
                   <EmptyState
                     icon="book"
-                    title="No courses match these filters"
-                    description="Change the major or grade filter to see your courses."
+                    title={lang === 'ar' ? 'لا توجد مقررات تطابق الفلاتر' : 'No courses match these filters'}
+                    description={lang === 'ar' ? 'غيّر فلتر التخصص أو الصف لرؤية مقرراتك.' : 'Change the major or grade filter to see your courses.'}
                   />
                 ) : (
                   <div className="course-grid">
@@ -617,18 +617,18 @@ export default function DoctorDashboard() {
                         </div>
                         <div className="course-card__meta">
                           <span>
-                            <Icon name="graduation-cap" size={14} /> Year {c.academic_year}
+                            <Icon name="graduation-cap" size={14} /> {lang === 'ar' ? `السنة ${c.academic_year}` : `Year ${c.academic_year}`}
                           </span>
                           <span>
-                            <Icon name="calendar" size={14} /> Term {c.term || '1'}
+                            <Icon name="calendar" size={14} /> {lang === 'ar' ? `الفصل ${c.term || '1'}` : `Term ${c.term || '1'}`}
                           </span>
                           <span>
-                            <Icon name="users" size={14} /> {c.student_count} students
+                            <Icon name="users" size={14} /> {c.student_count} {lang === 'ar' ? 'طالب' : 'students'}
                           </span>
                         </div>
                         <div className="course-card__actions">
                           <Button size="sm" icon="play" onClick={() => startSession(c.id)}>
-                            Start session
+                            {lang === 'ar' ? 'ابدأ الجلسة' : 'Start session'}
                           </Button>
                         </div>
                       </article>
@@ -643,19 +643,19 @@ export default function DoctorDashboard() {
             <section className="card">
               <div className="data-bar">
                 <div>
-                  <h2>Checked-in students</h2>
-                  <p>Live list for session #{activeSession.id}. Remove a record if it was a mistake.</p>
+                  <h2>{lang === 'ar' ? 'الطلاب الحاضرون' : 'Checked-in students'}</h2>
+                  <p>{lang === 'ar' ? `قائمة مباشرة للجلسة رقم ${activeSession.id}. أزل سجلاً إذا كان خطأً.` : `Live list for session #${activeSession.id}. Remove a record if it was a mistake.`}</p>
                 </div>
-                <Badge variant="success">{attendanceList.length} present</Badge>
+                <Badge variant="success">{attendanceList.length} {lang === 'ar' ? 'حاضر' : 'present'}</Badge>
               </div>
               <div className="table-wrap">
                 <table className="table table--compact">
                   <thead>
                     <tr>
-                      <th>Student</th>
-                      <th>Method</th>
-                      <th>Checked in</th>
-                      <th style={{ width: 90 }}>Action</th>
+                      <th>{lang === 'ar' ? 'الطالب' : 'Student'}</th>
+                      <th>{lang === 'ar' ? 'الطريقة' : 'Method'}</th>
+                      <th>{lang === 'ar' ? 'تم الحضور' : 'Checked in'}</th>
+                      <th style={{ width: 90 }}>{lang === 'ar' ? 'إجراء' : 'Action'}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -664,10 +664,10 @@ export default function DoctorDashboard() {
                         <td>
                           <div className="person">
                             <span className="avatar" style={{ width: 32, height: 32, fontSize: '0.66rem' }}>
-                              {initials(a.full_name)}
+                              {initials(lang === 'ar' && a.full_name_ar ? a.full_name_ar : a.full_name)}
                             </span>
                             <div className="person__meta">
-                              <b>{a.full_name}</b>
+                              <b>{lang === 'ar' && a.full_name_ar ? a.full_name_ar : a.full_name}</b>
                               <span>ID #{a.student_id}</span>
                             </div>
                           </div>
@@ -683,7 +683,7 @@ export default function DoctorDashboard() {
                             variant="ghost"
                             size="sm"
                             icon="trash"
-                            aria-label={`Remove attendance for ${a.full_name}`}
+                            aria-label={`Remove attendance for ${lang === 'ar' && a.full_name_ar ? a.full_name_ar : a.full_name}`}
                             onClick={() => removeAttendance(a.attendance_id)}
                           />
                         </td>
@@ -701,21 +701,21 @@ export default function DoctorDashboard() {
         <div className="card">
           <div className="data-bar">
             <div>
-              <h2>My courses</h2>
-              <p>Everything you teach this term, including assigned engineers.</p>
+              <h2>{lang === 'ar' ? 'مقرراتي' : 'My courses'}</h2>
+              <p>{lang === 'ar' ? 'كل ما تدرسه هذا الفصل، بما في ذلك المهندسون المكلفون.' : 'Everything you teach this term, including assigned engineers.'}</p>
             </div>
-            <Badge variant="blue">{courses.length} course(s)</Badge>
+            <Badge variant="blue">{courses.length} {lang === 'ar' ? 'مقرر' : 'course(s)'}</Badge>
           </div>
           <div className="table-wrap">
             <table className="table">
               <thead>
                 <tr>
-                  <th>Course</th>
-                  <th>Major</th>
-                  <th>Year / Term</th>
-                  <th>Students</th>
-                  <th>Engineers</th>
-                  <th>Your role</th>
+                  <th>{lang === 'ar' ? 'المقرر' : 'Course'}</th>
+                  <th>{lang === 'ar' ? 'التخصص' : 'Major'}</th>
+                  <th>{lang === 'ar' ? 'السنة / الفصل' : 'Year / Term'}</th>
+                  <th>{lang === 'ar' ? 'الطلاب' : 'Students'}</th>
+                  <th>{lang === 'ar' ? 'المهندسون' : 'Engineers'}</th>
+                  <th>{lang === 'ar' ? 'دورك' : 'Your role'}</th>
                 </tr>
               </thead>
               <tbody>
@@ -726,19 +726,19 @@ export default function DoctorDashboard() {
                       <span className="muted-cell"> — {c.course_name}</span>
                     </td>
                     <td className="muted-cell">{c.major_name}</td>
-                    <td className="muted-cell nowrap">Year {c.academic_year} · Term {c.term || '1'}</td>
+                    <td className="muted-cell nowrap">{lang === 'ar' ? `السنة ${c.academic_year} · الفصل ${c.term || '1'}` : `Year ${c.academic_year} · Term ${c.term || '1'}`}</td>
                     <td className="num">{c.student_count}</td>
-                    <td className="muted-cell">{c.engineers?.join(', ') || 'None'}</td>
+                    <td className="muted-cell">{c.engineers?.join(', ') || (lang === 'ar' ? 'لا يوجد' : 'None')}</td>
                     <td>
                       <Badge variant="blue">{c.role_in_course}</Badge>
-                      {c.is_primary && <Badge variant="success" className="badge--dot">Primary</Badge>}
+                      {c.is_primary && <Badge variant="success" className="badge--dot">{lang === 'ar' ? 'رئيسي' : 'Primary'}</Badge>}
                     </td>
                   </tr>
                 ))}
                 {courses.length === 0 && (
                   <tr>
                     <td colSpan="6">
-                      <EmptyState icon="book" title="No courses assigned yet" />
+                      <EmptyState icon="book" title={lang === 'ar' ? 'لا توجد مقررات مخصصة بعد' : 'No courses assigned yet'} />
                     </td>
                   </tr>
                 )}
@@ -752,24 +752,24 @@ export default function DoctorDashboard() {
         <div className="card">
           <div className="data-bar">
             <div>
-              <h2>Session history</h2>
-              <p>Every session you opened, with attendance totals.</p>
+              <h2>{lang === 'ar' ? 'سجل الجلسات' : 'Session history'}</h2>
+              <p>{lang === 'ar' ? 'كل جلسة فتحتها، مع إجمالي الحضور.' : 'Every session you opened, with attendance totals.'}</p>
             </div>
-            <Badge variant="blue">{filteredSessionHistory.length} session(s)</Badge>
+            <Badge variant="blue">{filteredSessionHistory.length} {lang === 'ar' ? 'جلسة' : 'session(s)'}</Badge>
             <select
               className="input"
               style={{ maxWidth: 160 }}
               value={historyFilterCourse}
               onChange={(e) => setHistoryFilterCourse(e.target.value)}
             >
-              <option value="all">All courses</option>
+              <option value="all">{lang === 'ar' ? 'كل المقررات' : 'All courses'}</option>
               {courses.map((c) => (
                 <option key={c.id} value={c.id}>{c.course_code}</option>
               ))}
             </select>
             <input
               className="input"
-              placeholder="Search sessions..."
+              placeholder={lang === 'ar' ? 'ابحث في الجلسات…' : 'Search sessions...'}
               value={historySearch}
               onChange={(e) => setHistorySearch(e.target.value)}
               style={{ maxWidth: 180 }}
@@ -780,14 +780,14 @@ export default function DoctorDashboard() {
               <thead>
                 <tr>
                   <th>#</th>
-                  <th>Course</th>
-                  <th>Date</th>
-                  <th>Start</th>
-                  <th>End</th>
-                  <th>Type</th>
-                  <th style={{ minWidth: 140 }}>Attendance</th>
-                  <th>Attendees</th>
-                  <th>Status</th>
+                  <th>{lang === 'ar' ? 'المقرر' : 'Course'}</th>
+                  <th>{lang === 'ar' ? 'التاريخ' : 'Date'}</th>
+                  <th>{lang === 'ar' ? 'البداية' : 'Start'}</th>
+                  <th>{lang === 'ar' ? 'النهاية' : 'End'}</th>
+                  <th>{lang === 'ar' ? 'النوع' : 'Type'}</th>
+                  <th style={{ minWidth: 140 }}>{lang === 'ar' ? 'الحضور' : 'Attendance'}</th>
+                  <th>{lang === 'ar' ? 'الحضور' : 'Attendees'}</th>
+                  <th>{lang === 'ar' ? 'الحالة' : 'Status'}</th>
                 </tr>
               </thead>
               <tbody>
@@ -825,12 +825,12 @@ export default function DoctorDashboard() {
                       </td>
                       <td>
                         <Button variant="soft" size="sm" icon="users" onClick={() => openAttendees(s)}>
-                          View
+                          {lang === 'ar' ? 'عرض' : 'View'}
                         </Button>
                       </td>
                       <td>
                         <Badge variant={s.is_active ? 'success' : 'neutral'} dot>
-                          {s.is_active ? 'Active' : 'Completed'}
+                          {s.is_active ? (lang === 'ar' ? 'نشطة' : 'Active') : lang === 'ar' ? 'مكتملة' : 'Completed'}
                         </Badge>
                       </td>
                     </tr>
@@ -841,8 +841,8 @@ export default function DoctorDashboard() {
                     <td colSpan="9">
                       <EmptyState
                         icon="calendar"
-                        title="No sessions yet"
-                        description="Start your first session from the live session tab."
+                        title={lang === 'ar' ? 'لا توجد جلسات بعد' : 'No sessions yet'}
+                        description={lang === 'ar' ? 'ابدأ جلستك الأولى من تبويب الجلسة المباشرة.' : 'Start your first session from the live session tab.'}
                       />
                     </td>
                   </tr>
@@ -855,17 +855,17 @@ export default function DoctorDashboard() {
     {showAttendees && (
       <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#fff', overflow: 'auto', padding: 24 }} onClick={() => setShowAttendees(false)}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }} onClick={(e) => e.stopPropagation()}>
-          <h2>Attendees — Session #{selectedHistorySession?.id}</h2>
+          <h2>{lang === 'ar' ? `الحضور — الجلسة رقم ${selectedHistorySession?.id}` : `Attendees — Session #${selectedHistorySession?.id}`}</h2>
           {attendees.length === 0 ? (
-            <p className="muted">No attendance recorded.</p>
+            <p className="muted">{lang === 'ar' ? 'لا يوجد حضور مسجل.' : 'No attendance recorded.'}</p>
           ) : (
             <ul className="stack" style={{ gap: 6, maxHeight: 500, overflow: 'auto', minWidth: 320 }}>
               {attendees.map((a) => (
                 <li key={a.attendance_id || a.id} className="row" style={{ justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #eee' }}>
                   <div>
-                    <div style={{ fontSize: '1.15rem', fontWeight: 700 }}>{a.full_name}</div>
+                    <div style={{ fontSize: '1.15rem', fontWeight: 700 }}>{lang === 'ar' && a.full_name_ar ? a.full_name_ar : a.full_name}</div>
                     <div className="muted-cell" style={{ fontSize: '0.9rem' }}>
-                      {a.major_name || ''} · Year {a.academic_year || ''} · {a.national_id || ''}
+                      {a.major_name || ''} · {lang === 'ar' ? `السنة ${a.academic_year || ''}` : `Year ${a.academic_year || ''}`} · {a.national_id || ''}
                     </div>
                   </div>
                   <span className="muted-cell">{a.method} · {a.created_at ? new Date(a.created_at).toLocaleTimeString() : ''}</span>
@@ -874,7 +874,7 @@ export default function DoctorDashboard() {
             </ul>
           )}
           <div className="row" style={{ justifyContent: 'flex-end', marginTop: 12 }}>
-            <Button variant="secondary" onClick={() => setShowAttendees(false)}>Close</Button>
+            <Button variant="secondary" onClick={() => setShowAttendees(false)}>{lang === 'ar' ? 'إغلاق' : 'Close'}</Button>
           </div>
         </div>
       </div>

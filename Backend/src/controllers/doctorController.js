@@ -34,7 +34,7 @@ exports.scanStudentPersonalQR = async (req, res) => {
     if (!sessCheck.rows[0].is_active) return res.status(400).json({ message: 'Session is not active' });
     const courseId = sessCheck.rows[0].course_id;
 
-    const studentRes = await pool.query(`SELECT id, full_name, status, totp_secret, national_id FROM students WHERE id = $1 OR id::text = $2`, [payload.student_id, payload.student_id]);
+    const studentRes = await pool.query(`SELECT id, full_name, full_name_ar, status, totp_secret, national_id FROM students WHERE id = $1 OR id::text = $2`, [payload.student_id, payload.student_id]);
     if (studentRes.rows.length === 0) return res.status(404).json({ message: 'Student not found' });
     const student = studentRes.rows[0];
     if (student.status !== 'active') return res.status(403).json({ message: `Student account is ${student.status}` });
@@ -129,7 +129,7 @@ exports.getSessionAttendanceList = async (req, res) => {
 
     const result = await pool.query(
       `SELECT a.id AS attendance_id, a.student_id, a.method, a.created_at,
-              s.full_name, s.national_id, s.email, s.academic_year
+              s.full_name, s.full_name_ar, s.national_id, s.email, s.academic_year
        FROM attendance a
        JOIN students s ON a.student_id = s.id
        WHERE a.session_id = $1
@@ -201,7 +201,7 @@ exports.getMyCourses = async (req, res) => {
     const courses = result.rows;
     for (let i = 0; i < courses.length; i++) {
       const engRes = await pool.query(
-        `SELECT s.full_name FROM course_staff cs JOIN staff s ON cs.staff_id = s.id WHERE cs.course_id = $1 AND cs.role_in_course = 'engineer'`,
+        `SELECT s.full_name, s.full_name_ar FROM course_staff cs JOIN staff s ON cs.staff_id = s.id WHERE cs.course_id = $1 AND cs.role_in_course = 'engineer'`,
         [courses[i].id]
       );
       courses[i].engineers = engRes.rows.map(e => e.full_name);
@@ -311,7 +311,7 @@ exports.getSessionAttendance = async (req, res) => {
     if (check.rows.length === 0) return res.status(404).json({ message: 'Session not found' });
 
     const result = await pool.query(
-      `SELECT a.id, a.student_id, a.method, a.created_at, s.full_name, s.national_id, s.email, s.academic_year, m.name AS major_name
+      `SELECT a.id, a.student_id, a.method, a.created_at, s.full_name, s.full_name_ar, s.national_id, s.email, s.academic_year, m.name AS major_name
        FROM attendance a JOIN students s ON a.student_id = s.id LEFT JOIN majors m ON s.major_id = m.id WHERE a.session_id = $1 ORDER BY a.created_at DESC`,
       [session_id]
     );
@@ -354,7 +354,7 @@ exports.manualScan = async (req, res) => {
     if (!sessCheck.rows[0].is_active) return res.status(400).json({ message: 'Session is not active' });
     const courseId = sessCheck.rows[0].course_id;
 
-    const studentRes = await pool.query(`SELECT id, full_name, status, totp_secret, national_id FROM students WHERE id = $1`, [student_id]);
+    const studentRes = await pool.query(`SELECT id, full_name, full_name_ar, status, totp_secret, national_id FROM students WHERE id = $1`, [student_id]);
     if (studentRes.rows.length === 0) return res.status(404).json({ message: 'Student not found' });
     const student = studentRes.rows[0];
     if (student.status !== 'active') return res.status(403).json({ message: `Student account is ${student.status}` });

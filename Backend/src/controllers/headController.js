@@ -89,7 +89,7 @@ exports.getCourses = async (req, res) => {
 
     for (let i = 0; i < courses.length; i++) {
       const staffRes = await pool.query(
-        `SELECT cs.id AS assignment_id, s.id AS staff_id, s.full_name, s.role,
+        `SELECT cs.id AS assignment_id, s.id AS staff_id, s.full_name, s.full_name_ar, s.role,
                 cs.role_in_course, cs.is_primary
          FROM course_staff cs
          JOIN staff s ON cs.staff_id = s.id
@@ -236,7 +236,7 @@ exports.getAllStudents = async (req, res) => {
     if (majorRes.rows.length === 0) return res.status(404).json({ message: 'No major assigned' });
 
     const result = await pool.query(
-      `SELECT s.id, s.national_id, s.full_name, s.email, s.phone, s.academic_year, s.status, s.created_at,
+      `SELECT s.id, s.national_id, s.full_name, s.full_name_ar, s.email, s.phone, s.academic_year, s.status, s.created_at,
               (SELECT COUNT(*) FROM enrollments e WHERE e.student_id = s.id) AS enrolled_courses
        FROM students s WHERE s.major_id = $1 ORDER BY s.status, s.created_at DESC`,
       [majorRes.rows[0].id]
@@ -380,7 +380,7 @@ exports.getRiskStudents = async (req, res) => {
     if (majorRes.rows.length === 0) return res.status(404).json({ message: 'No major' });
 
     const result = await pool.query(
-      `SELECT s.id, s.full_name, s.academic_year,
+      `SELECT s.id, s.full_name, s.full_name_ar, s.academic_year,
               COUNT(DISTINCT ses.id) AS total_sessions,
               COUNT(DISTINCT a.session_id) AS attended_sessions,
               CASE WHEN COUNT(DISTINCT ses.id) = 0 THEN 0
@@ -391,7 +391,7 @@ exports.getRiskStudents = async (req, res) => {
        JOIN sessions ses ON e.course_id = ses.course_id AND ses.is_active = FALSE
        LEFT JOIN attendance a ON a.student_id = s.id AND a.session_id = ses.id
        WHERE s.major_id = $1
-       GROUP BY s.id, s.full_name, s.academic_year
+       GROUP BY s.id, s.full_name, s.full_name_ar, s.academic_year
        HAVING (COUNT(DISTINCT a.session_id)::decimal / NULLIF(COUNT(DISTINCT ses.id), 0)) * 100 < $2`,
       [majorRes.rows[0].id, threshold]
     );
@@ -456,7 +456,7 @@ exports.getCourseStudents = async (req, res) => {
     if (check.rows.length === 0) return res.status(404).json({ message: 'Course not found' });
 
     const result = await pool.query(
-      `SELECT s.id, s.full_name, s.national_id, s.academic_year, s.status
+      `SELECT s.id, s.full_name, s.full_name_ar, s.national_id, s.academic_year, s.status
        FROM enrollments e JOIN students s ON e.student_id = s.id
        WHERE e.course_id = $1 ORDER BY s.full_name`,
       [course_id]
@@ -479,7 +479,7 @@ exports.getSessionAttendance = async (req, res) => {
     );
     if (check.rows.length === 0) return res.status(404).json({ message: 'Session not found' });
     const result = await pool.query(
-      `SELECT a.id, a.method, a.created_at, st.id AS student_id, st.full_name, st.national_id, st.academic_year, m.name AS major_name
+      `SELECT a.id, a.method, a.created_at, st.id AS student_id, st.full_name, st.full_name_ar, st.national_id, st.academic_year, m.name AS major_name
        FROM attendance a JOIN students st ON a.student_id = st.id LEFT JOIN majors m ON st.major_id = m.id
        WHERE a.session_id = $1 ORDER BY a.created_at ASC`,
       [session_id]

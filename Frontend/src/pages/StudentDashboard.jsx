@@ -8,15 +8,17 @@ import Icon from '../components/ui/Icon';
 import { Select } from '../components/ui/Field';
 import { Badge, EmptyState, Loader, StatCard } from '../components/ui/Feedback';
 import { AnimatedNumber, ProgressBar } from '../components/ui/Motion';
+import { useLanguage } from '../context/LanguageContext';
 
 const TABS = [
-  { key: 'dashboard', label: 'Overview', icon: 'home' },
-  { key: 'courses', label: 'My Courses', icon: 'book' },
-  { key: 'attendance', label: 'Attendance History', icon: 'calendar-check' },
-  { key: 'warnings', label: 'Warnings', icon: 'alert' },
+  { key: 'dashboard', label: { en: 'Overview', ar: 'نظرة عامة' }, icon: 'home' },
+  { key: 'courses', label: { en: 'My Courses', ar: 'مقرراتي' }, icon: 'book' },
+  { key: 'attendance', label: { en: 'Attendance History', ar: 'سجل الحضور' }, icon: 'calendar-check' },
+  { key: 'warnings', label: { en: 'Warnings', ar: 'التحذيرات' }, icon: 'alert' },
 ];
 
 function AttendanceGauge({ value }) {
+  const { lang } = useLanguage();
   const size = 104;
   const radius = 44;
   const circumference = 2 * Math.PI * radius;
@@ -48,7 +50,7 @@ function AttendanceGauge({ value }) {
         <strong>
           <AnimatedNumber value={safe} suffix="%" />
         </strong>
-        <span>attendance</span>
+        <span>{lang === 'ar' ? 'الحضور' : 'attendance'}</span>
       </div>
     </div>
   );
@@ -56,6 +58,7 @@ function AttendanceGauge({ value }) {
 
 export default function StudentDashboard() {
   const { user, logout } = useAuth();
+  const { lang } = useLanguage();
   const navigate = useNavigate();
   const [courses, setCourses] = useState([]);
   const [attendance, setAttendance] = useState([]);
@@ -110,7 +113,8 @@ export default function StudentDashboard() {
   const displayWarningsCount = filteredWarnings.length;
   const attendanceRate =
     displayTotalSessions > 0 ? Math.round((displayAttended / displayTotalSessions) * 100) : 0;
-  const termLabel = currentTerm === '2' ? '2nd Term' : '1st Term';
+  const termLabel =
+    currentTerm === '2' ? (lang === 'ar' ? 'الفصل الثاني' : '2nd Term') : lang === 'ar' ? 'الفصل الأول' : '1st Term';
 
   const nav = TABS.map((tab) => ({
     ...tab,
@@ -126,7 +130,7 @@ export default function StudentDashboard() {
     section: 'Quick actions',
   });
   nav.push({ key: 'scan', label: 'Scan Session QR', icon: 'scan', to: '/student/scan' });
-  nav.push({ key: 'warnings', label: 'My Warnings', icon: 'alert-triangle', to: '/student/warnings' });
+  nav.push({ key: 'my-warnings', label: 'My Warnings', icon: 'alert-triangle', to: '/student/warnings' });
   nav.push({ key: 'signout', label: 'Sign out', icon: 'logout', onClick: logout });
 
   if (loading) {
@@ -136,12 +140,12 @@ export default function StudentDashboard() {
         role="student"
         nav={nav}
         activeKey={activeTab}
-        title="Student workspace"
-        crumb="Student"
+        title={{ en: 'Student workspace', ar: 'مساحة الطالب' }}
+        crumb={{ en: 'Student', ar: 'الطالب' }}
         term={termLabel}
         onLogout={logout}
       >
-        <Loader label="Loading your attendance…" />
+        <Loader label={lang === 'ar' ? 'جارٍ تحميل حضورك…' : 'Loading your attendance…'} />
       </DashboardLayout>
     );
   }
@@ -152,17 +156,17 @@ export default function StudentDashboard() {
       role="student"
       nav={nav}
       activeKey={activeTab}
-      title={TABS.find((tab) => tab.key === activeTab)?.label || 'Student workspace'}
-      crumb="Student"
+      title={TABS.find((tab) => tab.key === activeTab)?.label || { en: 'Student workspace', ar: 'مساحة الطالب' }}
+      crumb={{ en: 'Student', ar: 'الطالب' }}
       term={termLabel}
       onLogout={logout}
       actions={
         <>
           <Button variant="secondary" size="sm" icon="scan" onClick={() => navigate('/student/scan')}>
-            Scan QR
+            {lang === 'ar' ? 'مسح رمز QR' : 'Scan QR'}
           </Button>
           <Button size="sm" icon="qr" onClick={() => navigate('/student/personal-qr')}>
-            My QR
+            {lang === 'ar' ? 'رمزي الشخصي' : 'My QR'}
           </Button>
         </>
       }
@@ -171,37 +175,38 @@ export default function StudentDashboard() {
         <div className="row-between wrap">
           <div className="grow" style={{ minWidth: 240, maxWidth: 640 }}>
             <span className="hero__eyebrow">
-              <Icon name="sparkles" size={14} /> {termLabel} · Student workspace
+              <Icon name="sparkles" size={14} /> {termLabel} · {lang === 'ar' ? 'مساحة الطالب' : 'Student workspace'}
             </span>
-            <h2>Welcome back, {user?.full_name?.split(' ')[0] || 'student'}.</h2>
+            <h2>{lang === 'ar' ? `مرحباً بعودتك، ${user?.full_name_ar?.split(' ')[0] || user?.full_name?.split(' ')[0] || 'student'}.` : `Welcome back, ${user?.full_name?.split(' ')[0] || 'student'}.`}</h2>
             <p>
-              Track every session, keep your attendance above the limit and scan the doctor QR
-              the moment a lecture starts.
+              {lang === 'ar'
+                ? 'تتبع كل جلسة، احتفظ بحضورك فوق الحد المسموح به، وامسح رمز QR للدكتور في اللحظة التي تبدأ فيها المحاضرة.'
+                : 'Track every session, keep your attendance above the limit and scan the doctor QR the moment a lecture starts.'}
             </p>
             <div className="hero__actions">
               <Button variant="white" icon="scan" onClick={() => navigate('/student/scan')}>
-                Scan doctor QR
+                {lang === 'ar' ? 'مسح رمز QR للدكتور' : 'Scan doctor QR'}
               </Button>
               <Button variant="ghost" icon="qr" onClick={() => navigate('/student/personal-qr')} style={{ color: '#fff', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.28)' }}>
-                Personal QR
+                {lang === 'ar' ? 'الرمز الشخصي' : 'Personal QR'}
               </Button>
             </div>
             <div className="hero__stats">
               <div className="hero__stat">
-                <span>Attended</span>
+                <span>{lang === 'ar' ? 'حضور' : 'Attended'}</span>
                 <strong>
                   <AnimatedNumber value={displayAttended} />
                   <small> / {displayTotalSessions}</small>
                 </strong>
               </div>
               <div className="hero__stat">
-                <span>Courses</span>
+                <span>{lang === 'ar' ? 'مقررات' : 'Courses'}</span>
                 <strong>
                   <AnimatedNumber value={filteredCourses.length} />
                 </strong>
               </div>
               <div className="hero__stat">
-                <span>Warnings</span>
+                <span>{lang === 'ar' ? 'تحذيرات' : 'Warnings'}</span>
                 <strong>
                   <AnimatedNumber value={displayWarningsCount} />
                 </strong>
@@ -215,12 +220,12 @@ export default function StudentDashboard() {
       <div className="toolbar" style={{ marginTop: 22 }}>
         <div className="grow" style={{ minWidth: 240 }}>
           <Select
-            label="Course filter"
+            label={lang === 'ar' ? 'تصفية المقررات' : 'Course filter'}
             value={selectedCourseId}
             onChange={(e) => setSelectedCourseId(e.target.value)}
             icon="filter"
           >
-            <option value="all">All courses</option>
+            <option value="all">{lang === 'ar' ? 'كل المقررات' : 'All courses'}</option>
             {courses.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.course_code} — {c.course_name}
@@ -230,12 +235,12 @@ export default function StudentDashboard() {
         </div>
         {attendanceRate < 75 && displayTotalSessions > 0 && (
           <Badge variant="danger" dot>
-            Below the 75% limit
+            {lang === 'ar' ? 'تحت الحد المسموح به' : 'Below the 75% limit'}
           </Badge>
         )}
         {attendanceRate >= 75 && displayTotalSessions > 0 && (
           <Badge variant="success" dot>
-            Attendance is healthy
+            {lang === 'ar' ? 'الحضور ممتاز' : 'Attendance is healthy'}
           </Badge>
         )}
       </div>
@@ -245,30 +250,30 @@ export default function StudentDashboard() {
           <div className="kpi-grid stagger">
             <StatCard
               icon="book"
-              label="Courses selected"
+              label={lang === 'ar' ? 'المقررات المختارة' : 'Courses selected'}
               value={<AnimatedNumber value={filteredCourses.length} />}
-              meta="Enrolled this term"
+              meta={lang === 'ar' ? 'مسجّل فيها هذا الفصل' : 'Enrolled this term'}
               tone="navy"
             />
             <StatCard
               icon="check-circle"
-              label="Sessions attended"
+              label={lang === 'ar' ? 'الجلسات الحاضر' : 'Sessions attended'}
               value={<AnimatedNumber value={displayAttended} />}
-              meta={`Out of ${displayTotalSessions} sessions`}
+              meta={lang === 'ar' ? `من أصل ${displayTotalSessions} جلسة` : `Out of ${displayTotalSessions} sessions`}
               tone="teal"
             />
             <StatCard
               icon="calendar"
-              label="Total sessions"
+              label={lang === 'ar' ? 'إجمالي الجلسات' : 'Total sessions'}
               value={<AnimatedNumber value={displayTotalSessions} />}
-              meta="Held so far"
+              meta={lang === 'ar' ? 'الحضور بها حتى الآن' : 'Held so far'}
               tone="blue"
             />
             <StatCard
               icon="alert"
-              label="Warnings"
+              label={lang === 'ar' ? 'التحذيرات' : 'Warnings'}
               value={<AnimatedNumber value={displayWarningsCount} />}
-              meta={displayWarningsCount === 0 ? 'All clear' : 'Needs attention'}
+              meta={displayWarningsCount === 0 ? (lang === 'ar' ? 'كل شيء مضبوط' : 'All clear') : (lang === 'ar' ? 'يحتاج انتباه' : 'Needs attention')}
               tone={displayWarningsCount === 0 ? 'olive' : 'danger'}
             />
           </div>
@@ -276,19 +281,19 @@ export default function StudentDashboard() {
           <div className="card">
             <div className="data-bar">
               <div>
-                <h2>Attendance by course</h2>
-                <p>Percentage of sessions attended in each enrolled course.</p>
+                <h2>{lang === 'ar' ? 'الحضور حسب المقرر' : 'Attendance by course'}</h2>
+                <p>{lang === 'ar' ? 'نسبة الجلسات التي حضرتها في كل مادة مسجّلة.' : 'Percentage of sessions attended in each enrolled course.'}</p>
               </div>
               <Badge variant={attendanceRate >= 75 ? 'success' : 'warning'}>
-                Overall {attendanceRate}%
+                {lang === 'ar' ? `الإجمالي ${attendanceRate}%` : `Overall ${attendanceRate}%`}
               </Badge>
             </div>
             <div className="card__body stack">
               {filteredCourses.length === 0 && (
                 <EmptyState
                   icon="book"
-                  title="No courses yet"
-                  description="Your head of department has not enrolled you in courses for this term."
+                  title={lang === 'ar' ? 'لا توجد مقررات بعد' : 'No courses yet'}
+                  description={lang === 'ar' ? 'لم يقم رئيس القسم بإضافتك إلى مقررات لهذا الفصل.' : 'Your head of department has not enrolled you in courses for this term.'}
                 />
               )}
               {filteredCourses.map((c) => {
@@ -323,21 +328,21 @@ export default function StudentDashboard() {
         <div className="card" style={{ marginTop: 20 }}>
           <div className="data-bar">
             <div>
-              <h2>My courses</h2>
-              <p>{filteredCourses.length} course(s) in {termLabel.toLowerCase()}.</p>
+              <h2>{lang === 'ar' ? 'مقرراتي' : 'My courses'}</h2>
+              <p>{filteredCourses.length} {lang === 'ar' ? 'مقرر' : 'course(s)'} في {termLabel.toLowerCase()}.{lang === 'ar' ? ` (${termLabel})` : ''}</p>
             </div>
           </div>
           <div className="table-wrap">
             <table className="table">
               <thead>
                 <tr>
-                  <th>Code</th>
-                  <th>Course</th>
-                  <th>Major</th>
-                  <th>Year / Term</th>
-                  <th>Sessions</th>
-                  <th>Attended</th>
-                  <th style={{ minWidth: 160 }}>Attendance</th>
+                  <th>{lang === 'ar' ? 'رمز' : 'Code'}</th>
+                  <th>{lang === 'ar' ? 'المقرر' : 'Course'}</th>
+                  <th>{lang === 'ar' ? 'التخصص' : 'Major'}</th>
+                  <th>{lang === 'ar' ? 'السنة / الفصل' : 'Year / Term'}</th>
+                  <th>{lang === 'ar' ? 'الجلسات' : 'Sessions'}</th>
+                  <th>{lang === 'ar' ? 'الحضور' : 'Attended'}</th>
+                  <th style={{ minWidth: 160 }}>{lang === 'ar' ? 'نسبة الحضور' : 'Attendance'}</th>
                 </tr>
               </thead>
               <tbody>
@@ -371,8 +376,8 @@ export default function StudentDashboard() {
                     <td colSpan="7">
                       <EmptyState
                         icon="book"
-                        title="No courses found"
-                        description="Try changing the course filter above."
+                        title={lang === 'ar' ? 'لا توجد مقررات' : 'No courses found'}
+                        description={lang === 'ar' ? 'غيّر تصفية المقررات في الأعلى.' : 'Try changing the course filter above.'}
                       />
                     </td>
                   </tr>
@@ -387,19 +392,19 @@ export default function StudentDashboard() {
         <div className="card" style={{ marginTop: 20 }}>
           <div className="data-bar">
             <div>
-              <h2>Attendance history</h2>
-              <p>Every check-in recorded on your account.</p>
+              <h2>{lang === 'ar' ? 'سجل الحضور' : 'Attendance history'}</h2>
+              <p>{lang === 'ar' ? 'كل عملية حضور سُجّلت في حسابك.' : 'Every check-in recorded on your account.'}</p>
             </div>
-            <Badge variant="blue">{attendance.length} record(s)</Badge>
+            <Badge variant="blue">{attendance.length} {lang === 'ar' ? 'سجل' : 'record(s)'}</Badge>
           </div>
           <div className="table-wrap">
             <table className="table">
               <thead>
                 <tr>
-                  <th>Course</th>
-                  <th>Session date</th>
-                  <th>Method</th>
-                  <th>Checked in at</th>
+                  <th>{lang === 'ar' ? 'المقرر' : 'Course'}</th>
+                  <th>{lang === 'ar' ? 'تاريخ الجلسة' : 'Session date'}</th>
+                  <th>{lang === 'ar' ? 'الطريقة' : 'Method'}</th>
+                  <th>{lang === 'ar' ? 'تم الحضور في' : 'Checked in at'}</th>
                 </tr>
               </thead>
               <tbody>
@@ -423,8 +428,8 @@ export default function StudentDashboard() {
                     <td colSpan="4">
                       <EmptyState
                         icon="calendar"
-                        title="No attendance records"
-                        description="Scan the doctor QR in your next session to start your history."
+                        title={lang === 'ar' ? 'لا توجد سجلات حضور' : 'No attendance records'}
+                        description={lang === 'ar' ? 'امسح رمز QR للدكتور في الجلسة القادمة لبدء سجل حضورك.' : 'Scan the doctor QR in your next session to start your history.'}
                       />
                     </td>
                   </tr>
@@ -439,35 +444,35 @@ export default function StudentDashboard() {
         <div className="card" style={{ marginTop: 20 }}>
           <div className="data-bar">
             <div>
-              <h2>My warnings</h2>
-              <p>Automatic warnings based on your absence percentage.</p>
+              <h2>{lang === 'ar' ? 'تحذيراتي' : 'My warnings'}</h2>
+              <p>{lang === 'ar' ? 'تحذيرات تلقائية بناءً على نسبة غيابك.' : 'Automatic warnings based on your absence percentage.'}</p>
             </div>
             <Badge variant={filteredWarnings.length ? 'danger' : 'success'}>
-              {filteredWarnings.length} warning(s)
+              {filteredWarnings.length} {lang === 'ar' ? 'تحذير' : 'warning(s)'}
             </Badge>
           </div>
           <div className="card__body">
             {filteredWarnings.length === 0 ? (
               <EmptyState
                 icon="shield-check"
-                title="No warnings"
-                description="Your attendance is within the allowed limit for this selection."
+                title={lang === 'ar' ? 'لا توجد تحذيرات' : 'No warnings'}
+                description={lang === 'ar' ? 'حضورك ضمن الحد المسموح به.' : 'Your attendance is within the allowed limit for this selection.'}
               />
             ) : (
               <div className="warning-grid">
                 {filteredWarnings.map((w) => (
                   <article key={w.id} className="warning-card">
                     <h3>
-                      <Icon name="alert" size={18} /> Warning level {w.level}
+                      <Icon name="alert" size={18} /> {lang === 'ar' ? 'مستوى التحذير' : 'Warning level'} {w.level}
                     </h3>
                     <p>
                       <b>{w.course_code}</b> — {w.course_name}
                     </p>
                     <div className="warning-card__meta">
                       <Badge variant="danger">
-                        Absence {parseFloat(w.absence_percentage).toFixed(1)}%
+                        {lang === 'ar' ? `غياب ${parseFloat(w.absence_percentage).toFixed(1)}%` : `Absence ${parseFloat(w.absence_percentage).toFixed(1)}%`}
                       </Badge>
-                      <Badge variant="neutral">Max allowed {w.max_allowed}%</Badge>
+                      <Badge variant="neutral">{lang === 'ar' ? `الحد المسموح ${w.max_allowed}%` : `Max allowed ${w.max_allowed}%`}</Badge>
                     </div>
                     <time>{new Date(w.sent_at).toLocaleString()}</time>
                   </article>

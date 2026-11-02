@@ -22,6 +22,7 @@ export default function Register() {
   const [formData, setFormData] = useState({
     national_id: '',
     full_name: '',
+    full_name_ar: '',
     email: '',
     phone: '',
     academic_year: '1',
@@ -82,7 +83,7 @@ export default function Register() {
           <Icon name="graduation-cap" size={14} /> {lang === 'ar' ? 'تأهيل طالب جديد' : 'Student onboarding'}
         </span>
         <h1>{lang === 'ar' ? 'أنشئ حسابك' : 'Create your account'}</h1>
-        <p>{lang === 'ar' ? 'سجّل مرة واحدة، ثم انتظر موافقة عميد القسم على قبولك.' : 'Register once, then wait for your Head of Department to approve you.'}</p>
+        <p>{lang === 'ar' ? 'سجّل مرة واحدة، ثم انتظر موافقة رئيس القسم على قبولك.' : 'Register once, then wait for your Head of Department to approve you.'}</p>
       </div>
 
       <form className="auth__form" onSubmit={handleSubmit}>
@@ -109,6 +110,13 @@ export default function Register() {
               value={formData.full_name}
               onChange={set('full_name')}
               required
+            />
+            <Input
+              label={lang === 'ar' ? 'الاسم الكامل بالعربية' : 'Full Arabic Name'}
+              icon="user"
+              placeholder={lang === 'ar' ? 'اكتب الاسم بالعربية' : 'Arabic name'}
+              value={formData.full_name_ar}
+              onChange={set('full_name_ar')}
             />
             <Input
               label={lang === 'ar' ? 'البريد الإلكتروني' : 'Email'}

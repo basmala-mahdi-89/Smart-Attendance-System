@@ -7,6 +7,7 @@ import Button from '../components/ui/Button';
 import Icon from '../components/ui/Icon';
 import { Badge, EmptyState, Loader, StatCard } from '../components/ui/Feedback';
 import { AnimatedNumber } from '../components/ui/Motion';
+import { useLanguage } from '../context/LanguageContext';
 
 const initials = (name = '') =>
   name
@@ -19,6 +20,7 @@ const initials = (name = '') =>
 
 export default function PendingStudents() {
   const { user, logout } = useAuth();
+  const { lang } = useLanguage();
   const navigate = useNavigate();
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -84,11 +86,11 @@ export default function PendingStudents() {
         role="head"
         nav={nav}
         activeKey="pending"
-        title="Pending students"
-        crumb="Head · Students"
+        title={{ en: 'Pending students', ar: 'الطلاب المنتظرون' }}
+        crumb={{ en: 'Head · Students', ar: 'رئيس القسم · الطلاب' }}
         onLogout={logout}
       >
-        <Loader label="Loading pending registrations…" />
+        <Loader label={lang === 'ar' ? 'جارٍ تحميل التسجيلات المعلقة…' : 'Loading pending registrations…'} />
       </DashboardLayout>
     );
   }
@@ -99,23 +101,29 @@ export default function PendingStudents() {
       role="head"
       nav={nav}
       activeKey="pending"
-      title="Pending students"
-      crumb="Head · Students"
+      title={{ en: 'Pending students', ar: 'الطلاب المنتظرون' }}
+      crumb={{ en: 'Head · Students', ar: 'رئيس القسم · الطلاب' }}
       onLogout={logout}
       actions={
         <Button variant="secondary" size="sm" icon="arrow-left" onClick={() => navigate('/head')}>
-          Back to head
+          {lang === 'ar' ? 'رجوع' : 'Back to head'}
         </Button>
       }
     >
       <div className="page-head">
         <div className="page-head__text">
-          <h1>Registration approvals</h1>
-          <p>Review student accounts before they can sign in and scan attendance.</p>
+          <h1>{lang === 'ar' ? 'موافقات التسجيل' : 'Registration approvals'}</h1>
+          <p>{lang === 'ar' ? 'راجع حسابات الطلاب قبل أن يتمكنوا من تسجيل الدخول ومسح الحضور.' : 'Review student accounts before they can sign in and scan attendance.'}</p>
         </div>
         <div className="page-head__actions">
           <Badge variant={students.length ? 'warning' : 'success'} dot>
-            {students.length ? `${students.length} awaiting review` : 'All caught up'}
+            {students.length
+              ? lang === 'ar'
+                ? `${students.length} بانتظار المراجعة`
+                : `${students.length} awaiting review`
+              : lang === 'ar'
+                ? 'كل شيء مُراجَع'
+                : 'All caught up'}
           </Badge>
         </div>
       </div>
@@ -123,16 +131,16 @@ export default function PendingStudents() {
       <div className="kpi-grid stagger" style={{ marginBottom: 20 }}>
         <StatCard
           icon="user-plus"
-          label="Pending requests"
+          label={lang === 'ar' ? 'الطلبات المعلقة' : 'Pending requests'}
           value={<AnimatedNumber value={students.length} />}
-          meta="Waiting for your decision"
+          meta={lang === 'ar' ? 'بانتظار قرارك' : 'Waiting for your decision'}
           tone={students.length ? 'warn' : 'olive'}
         />
         <StatCard
           icon="shield-check"
-          label="Verification"
-          value="Manual"
-          meta="National ID + academic year"
+          label={lang === 'ar' ? 'التحقق' : 'Verification'}
+          value={lang === 'ar' ? 'يدوي' : 'Manual'}
+          meta={lang === 'ar' ? 'البطاقة الوطنية + السنة الدراسية' : 'National ID + academic year'}
           tone="blue"
         />
       </div>
@@ -142,11 +150,11 @@ export default function PendingStudents() {
           <div className="card__body">
             <EmptyState
               icon="check-circle"
-              title="No pending students"
-              description="Every registration has been reviewed. New requests will appear here automatically."
+              title={lang === 'ar' ? 'لا يوجد طلاب منتظرون' : 'No pending students'}
+              description={lang === 'ar' ? 'تمت مراجعة كل التسجيلات. الطلبات الجديدة ستظهر هنا تلقائياً.' : 'Every registration has been reviewed. New requests will appear here automatically.'}
               action={
                 <Button variant="secondary" icon="users" onClick={() => navigate('/head')}>
-                  Back to head overview
+                  {lang === 'ar' ? 'رجوع إلى نظرة عامة على القسم' : 'Back to head overview'}
                 </Button>
               }
             />
@@ -158,10 +166,10 @@ export default function PendingStudents() {
             <article key={s.id} className="course-card">
               <div className="course-card__top">
                 <div className="person">
-                  <span className="avatar avatar--lg avatar--light">{initials(s.full_name)}</span>
+                  <span className="avatar avatar--lg avatar--light">{initials(lang === 'ar' && s.full_name_ar ? s.full_name_ar : s.full_name)}</span>
                   <div className="person__meta">
-                    <b>{s.full_name}</b>
-                    <span>Year {s.academic_year}</span>
+                    <b>{lang === 'ar' && s.full_name_ar ? s.full_name_ar : s.full_name}</b>
+                    <span>{lang === 'ar' ? `السنة ${s.academic_year}` : `Year ${s.academic_year}`}</span>
                   </div>
                 </div>
                 <Badge variant="warning" dot>
@@ -172,19 +180,19 @@ export default function PendingStudents() {
               <div className="stack" style={{ gap: 7 }}>
                 <div className="row" style={{ gap: 8, fontSize: '0.8rem' }}>
                   <Icon name="id-card" size={15} />
-                  <span className="muted-cell">National ID</span>
+                  <span className="muted-cell">{lang === 'ar' ? 'البطاقة الوطنية' : 'National ID'}</span>
                   <span className="mono" style={{ marginLeft: 'auto', fontWeight: 700 }}>
                     {s.national_id}
                   </span>
                 </div>
                 <div className="row" style={{ gap: 8, fontSize: '0.8rem' }}>
                   <Icon name="mail" size={15} />
-                  <span className="muted-cell">Email</span>
+                  <span className="muted-cell">{lang === 'ar' ? 'البريد الإلكتروني' : 'Email'}</span>
                   <span style={{ marginLeft: 'auto', fontWeight: 600 }}>{s.email}</span>
                 </div>
                 <div className="row" style={{ gap: 8, fontSize: '0.8rem' }}>
                   <Icon name="smartphone" size={15} />
-                  <span className="muted-cell">Phone</span>
+                  <span className="muted-cell">{lang === 'ar' ? 'رقم الهاتف' : 'Phone'}</span>
                   <span style={{ marginLeft: 'auto', fontWeight: 600 }}>{s.phone}</span>
                 </div>
               </div>
@@ -198,7 +206,7 @@ export default function PendingStudents() {
                   disabled={actionLoading === s.id}
                   onClick={() => approveStudent(s.id)}
                 >
-                  Approve
+                  {lang === 'ar' ? 'قبول' : 'Approve'}
                 </Button>
                 <Button
                   variant="danger"
@@ -207,7 +215,7 @@ export default function PendingStudents() {
                   disabled={actionLoading === s.id}
                   onClick={() => rejectStudent(s.id)}
                 >
-                  Reject
+                  {lang === 'ar' ? 'رفض' : 'Reject'}
                 </Button>
               </div>
             </article>

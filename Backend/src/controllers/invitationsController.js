@@ -8,13 +8,16 @@ const { sendInvitationEmail } = require('../utils/emailService');
 // ============================
 exports.createInvitation = async (req, res) => {
   try {
-    const { email, national_id, full_name, role, major_id } = req.body;
+    const { email, role, major_id } = req.body;
     const invitedBy = req.user.id;
     const inviterRole = req.user.role;
 
     // ====== Validation ======
-    if (!email || !national_id || !full_name || !role) {
-      return res.status(400).json({ message: 'All fields are required' });
+    if (!email || !role) {
+      return res.status(400).json({ message: 'Email and role are required' });
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ message: 'Invalid email address' });
     }
 
     // Rule 1: Dean → only 'head'
@@ -55,8 +58,8 @@ exports.createInvitation = async (req, res) => {
 
     // Check if email already exists in staff
     const existingStaff = await pool.query(
-      `SELECT id FROM staff WHERE email = $1 OR national_id = $2`,
-      [email, national_id]
+      `SELECT id FROM staff WHERE email = $1`,
+      [email]
     );
     if (existingStaff.rows.length > 0) {
       return res.status(400).json({ message: 'User already exists in staff' });
@@ -81,13 +84,13 @@ exports.createInvitation = async (req, res) => {
       `INSERT INTO invitations (email, national_id, full_name, role, invited_by, major_id, token, expires_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, NOW() + INTERVAL '7 days') 
        RETURNING id, email, full_name, role, token, expires_at`,
-      [email, national_id, full_name, role, invitedBy, major_id || null, token]
+      [email, null, null, role, invitedBy, major_id || null, token]
     );
 
     // ====== Send Email ======
     try {
       const frontendOrigin = req.headers.origin || process.env.FRONTEND_URL;
-await sendInvitationEmail(email, full_name, role, token, frontendOrigin);
+await sendInvitationEmail(email, 'New User', role, token, frontendOrigin);
     } catch (emailErr) {
       console.error('Email error:', emailErr.message);
       // Roll back invitation if email fails
@@ -172,10 +175,13 @@ exports.acceptInvitation = async (req, res) => {
   const client = await pool.connect();
   try {
     const { token } = req.params;
-    const { password } = req.body;
+    const { password, full_name, full_name_ar, national_id, phone } = req.body;
 
     if (!password || password.length < 8) {
       return res.status(400).json({ message: 'Password must be at least 8 characters' });
+    }
+    if (!full_name || !national_id) {
+      return res.status(400).json({ message: 'Full name and national ID are required' });
     }
 
     await client.query('BEGIN');
@@ -227,10 +233,10 @@ exports.acceptInvitation = async (req, res) => {
 
     // Create staff
     const staffRes = await client.query(
-      `INSERT INTO staff (national_id, full_name, email, password_hash, role)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING id, full_name, email, role`,
-      [invitation.national_id, invitation.full_name, invitation.email, password_hash, invitation.role]
+      `INSERT INTO staff (national_id, full_name, full_name_ar, email, phone, password_hash, role)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING id, full_name, full_name_ar, email, role`,
+      [national_id, full_name, full_name_ar || null, invitation.email, phone || null, password_hash, invitation.role]
     );
 
     const newStaff = staffRes.rows[0];

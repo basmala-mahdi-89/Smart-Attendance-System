@@ -8,6 +8,7 @@ import Button from '../components/ui/Button';
 import Icon from '../components/ui/Icon';
 import { Badge, Loader } from '../components/ui/Feedback';
 import { ProgressBar } from '../components/ui/Motion';
+import { useLanguage } from '../context/LanguageContext';
 
 function base32Decode(base32) {
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
@@ -61,6 +62,7 @@ async function generateTOTP(secret) {
 export default function PersonalQR() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { lang } = useLanguage();
   const [secret, setSecret] = useState('');
   const [studentId, setStudentId] = useState('');
   const [token, setToken] = useState('');
@@ -135,34 +137,34 @@ export default function PersonalQR() {
       role="student"
       nav={nav}
       activeKey="personal-qr"
-      title="My personal QR"
-      crumb="Student · Identity"
+      title={{ en: 'My personal QR', ar: 'رمزي الشخصي' }}
+      crumb={{ en: 'Student · Identity', ar: 'الطالب · الهوية' }}
       onLogout={logout}
       actions={
         <Button variant="secondary" size="sm" icon="arrow-left" onClick={() => navigate('/student')}>
-          Dashboard
+          {lang === 'ar' ? 'لوحة التحكم' : 'Dashboard'}
         </Button>
       }
     >
       <div className="page-head">
         <div className="page-head__text">
-          <h1>Your offline attendance identity</h1>
-          <p>Show this code to the doctor or engineer when the camera scanner is in use.</p>
+          <h1>{lang === 'ar' ? 'هويتك للحضور دون اتصال' : 'Your offline attendance identity'}</h1>
+          <p>{lang === 'ar' ? 'اعرض هذا الرمز للدكتور أو المهندس عند استخدام الكاميرا.' : 'Show this code to the doctor or engineer when the camera scanner is in use.'}</p>
         </div>
         <div className="page-head__actions">
           <Badge variant="success" dot>
-            Device-bound · refreshes every 30s
+            {lang === 'ar' ? 'مرتبطة بالجهاز · تتجدد كل 30 ثانية' : 'Device-bound · refreshes every 30s'}
           </Badge>
         </div>
       </div>
 
       {loading ? (
-        <Loader label="Preparing your secure QR…" />
+        <Loader label={lang === 'ar' ? 'جارٍ تجهيز رمزك الآمن…' : 'Preparing your secure QR…'} />
       ) : (
         <div className="center-page">
           <section className="qr-card anim-scale">
-            <h1>My personal QR</h1>
-            <p className="qr-card__name">{user?.full_name}</p>
+            <h1>{lang === 'ar' ? 'رمزي الشخصي' : 'My personal QR'}</h1>
+            <p className="qr-card__name">{lang === 'ar' && user?.full_name_ar ? user?.full_name_ar : user?.full_name}</p>
 
             <div className="qr-card__frame">
               {qrData ? (
@@ -173,9 +175,9 @@ export default function PersonalQR() {
             </div>
 
             <div className="totp">
-              <div className="totp__label">TOTP code · 30 seconds</div>
+              <div className="totp__label">{lang === 'ar' ? 'رمز TOTP · 30 ثانية' : 'TOTP code · 30 seconds'}</div>
               <div className="totp__code">{token || '••••••'}</div>
-              <div className="totp__meta">Refreshes in {timeLeft} seconds</div>
+              <div className="totp__meta">{lang === 'ar' ? `يتجدد خلال ${timeLeft} ثانية` : `Refreshes in ${timeLeft} seconds`}</div>
               <ProgressBar
                 value={(timeLeft / 30) * 100}
                 tone={timeLeft <= 5 ? 'warning' : 'blue'}
@@ -187,8 +189,9 @@ export default function PersonalQR() {
             <div className="qr-card__hint">
               <Icon name="shield-check" size={17} />
               <span>
-                This code is tied to your account and device. Sharing it with another student will
-                be flagged as proxy attendance.
+                {lang === 'ar'
+                  ? 'هذا الرمز مرتبط بحسابك وجهازك. مشاركته مع طالب آخر سيُعلَّم كحضور وسيط.'
+                  : 'This code is tied to your account and device. Sharing it with another student will be flagged as proxy attendance.'}
               </span>
             </div>
 
@@ -199,7 +202,7 @@ export default function PersonalQR() {
               style={{ marginTop: 16 }}
               onClick={() => navigate('/student/scan')}
             >
-              Scan a session QR instead
+              {lang === 'ar' ? 'امسح رمز جلسة بدلًا من ذلك' : 'Scan a session QR instead'}
             </Button>
           </section>
         </div>

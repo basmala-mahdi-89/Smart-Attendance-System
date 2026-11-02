@@ -7,6 +7,7 @@ import { Input, PasswordInput } from '../components/ui/Field';
 import { Alert } from '../components/ui/Feedback';
 import Icon from '../components/ui/Icon';
 import { useLanguage } from '../context/LanguageContext';
+import { getDeviceFingerprint } from '../utils/deviceFingerprint';
 
 export default function Login() {
   const [national_id, setNationalId] = useState('');
@@ -22,7 +23,7 @@ export default function Login() {
     setLoading(true);
     setError('');
     try {
-      const user = await login(national_id, password);
+      const user = await login(national_id, password, getDeviceFingerprint());
 
       // ⚡ توجيه كل Role للصفحة بتاعته
       if (user.role === 'engineer') {
@@ -91,7 +92,7 @@ export default function Login() {
         <Icon name="info" size={17} />
         <span>
           {lang === 'ar'
-            ? 'يجب على الطلاب الجدد التحقق من بريدهم الإلكتروني وانتظار موافقة عميد القسم قبل تسجيل الدخول.'
+            ? 'يجب على الطلاب الجدد التحقق من بريدهم الإلكتروني وانتظار موافقة رئيس القسم قبل تسجيل الدخول.'
             : 'New students must verify their email and wait for the Head of Department to approve the account before signing in.'}
         </span>
       </div>

@@ -6,9 +6,11 @@ import DashboardLayout from '../components/layout/DashboardLayout';
 import Button from '../components/ui/Button';
 import Icon from '../components/ui/Icon';
 import { Badge, EmptyState, Loader } from '../components/ui/Feedback';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function Warnings() {
   const { user, logout } = useAuth();
+  const { lang } = useLanguage();
   const [warnings, setWarnings] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -34,19 +36,19 @@ export default function Warnings() {
 
   if (loading) {
     return (
-      <DashboardLayout user={user} role="student" nav={nav} activeKey="warnings" title="Warnings" crumb="Student · Warnings" onLogout={logout}>
-        <Loader label="Loading warnings…" />
+      <DashboardLayout user={user} role="student" nav={nav} activeKey="warnings" title={{ en: 'Warnings', ar: 'التحذيرات' }} crumb={{ en: 'Student · Warnings', ar: 'الطالب · التحذيرات' }} onLogout={logout}>
+        <Loader label={lang === 'ar' ? 'جارٍ تحميل التحذيرات…' : 'Loading warnings…'} />
       </DashboardLayout>
     );
   }
 
   return (
-    <DashboardLayout user={user} role="student" nav={nav} activeKey="warnings" title="Warnings" crumb="Student · Warnings" onLogout={logout}>
+    <DashboardLayout user={user} role="student" nav={nav} activeKey="warnings" title={{ en: 'Warnings', ar: 'التحذيرات' }} crumb={{ en: 'Student · Warnings', ar: 'الطالب · التحذيرات' }} onLogout={logout}>
       <div className="card">
         <div className="data-bar">
           <div>
-            <h2>My warnings</h2>
-            <p>{warnings.length} warning(s) received.</p>
+            <h2>{lang === 'ar' ? 'تحذيراتي' : 'My warnings'}</h2>
+            <p>{warnings.length} {lang === 'ar' ? 'تحذير' : 'warning(s)'}.</p>
           </div>
           <Badge variant={warnings.length > 0 ? 'danger' : 'success'}>{warnings.length}</Badge>
         </div>
@@ -54,11 +56,11 @@ export default function Warnings() {
           <table className="table">
             <thead>
               <tr>
-                <th>Course</th>
-                <th>Level</th>
-                <th>Absence %</th>
-                <th>Max allowed</th>
-                <th>Sent at</th>
+                <th>{lang === 'ar' ? 'المقرر' : 'Course'}</th>
+                <th>{lang === 'ar' ? 'المستوى' : 'Level'}</th>
+                <th>{lang === 'ar' ? 'نسبة الغياب' : 'Absence %'}</th>
+                <th>{lang === 'ar' ? 'الحد المسموح' : 'Max allowed'}</th>
+                <th>{lang === 'ar' ? 'أُرسل في' : 'Sent at'}</th>
               </tr>
             </thead>
             <tbody>
@@ -69,7 +71,7 @@ export default function Warnings() {
                     <span className="muted-cell"> — {w.course_name}</span>
                   </td>
                   <td>
-                    <Badge variant={w.level >= 2 ? 'danger' : 'warning'}>Level {w.level}</Badge>
+                    <Badge variant={w.level >= 2 ? 'danger' : 'warning'}>{lang === 'ar' ? `المستوى ${w.level}` : `Level ${w.level}`}</Badge>
                   </td>
                   <td className="num">{Number(w.absence_percentage).toFixed(1)}%</td>
                   <td className="num">{w.max_allowed}%</td>
@@ -79,7 +81,7 @@ export default function Warnings() {
               {warnings.length === 0 && (
                 <tr>
                   <td colSpan="5">
-                    <EmptyState icon="check-circle" title="No warnings" description="You have no attendance warnings." />
+                    <EmptyState icon="check-circle" title={lang === 'ar' ? 'لا توجد تحذيرات' : 'No warnings'} description={lang === 'ar' ? 'لا توجد لديك تحذيرات حضور.' : 'You have no attendance warnings.'} />
                   </td>
                 </tr>
               )}

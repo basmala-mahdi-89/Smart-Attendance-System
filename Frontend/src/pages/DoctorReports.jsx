@@ -8,9 +8,11 @@ import Icon from '../components/ui/Icon';
 import { Input, Select } from '../components/ui/Field';
 import { Badge, EmptyState, Loader, StatCard } from '../components/ui/Feedback';
 import { AnimatedNumber, ProgressBar } from '../components/ui/Motion';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function DoctorReports() {
   const { user, logout } = useAuth();
+  const { lang } = useLanguage();
   const navigate = useNavigate();
   const [courses, setCourses] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState('');
@@ -46,7 +48,7 @@ export default function DoctorReports() {
       const { data } = await client.get(`/doctor/courses/${courseId}/report`);
       setReport(data);
     } catch (err) {
-      alert('Failed to load report');
+      alert(lang === 'ar' ? 'فشل تحميل التقرير' : 'Failed to load report');
     } finally {
       setLoading(false);
     }
@@ -68,10 +70,10 @@ export default function DoctorReports() {
 
   const handleSendWarnings = async () => {
     if (selectedStudents.length === 0) {
-      alert('Please select at least one student.');
+      alert(lang === 'ar' ? 'الرجاء تحديد طالب واحد على الأقل.' : 'Please select at least one student.');
       return;
     }
-    if (!window.confirm(`Send warnings to ${selectedStudents.length} selected student(s)?`)) return;
+    if (!window.confirm(lang === 'ar' ? `إرسال تحذير إلى ${selectedStudents.length} طالب محدد؟` : `Send warnings to ${selectedStudents.length} selected student(s)?`)) return;
 
     setSendingWarnings(true);
     try {
@@ -101,12 +103,12 @@ export default function DoctorReports() {
       link.click();
       link.parentNode.removeChild(link);
     } catch (err) {
-      alert('Failed to download report');
+      alert(lang === 'ar' ? 'فشل تنزيل التقرير' : 'Failed to download report');
     }
   };
 
   const filteredStudents =
-    report?.students.filter((s) =>
+    report?.students?.filter((s) =>
       s.full_name.toLowerCase().includes(searchTerm.toLowerCase())
     ) || [];
 
@@ -117,12 +119,16 @@ export default function DoctorReports() {
   const homeLink =
     user?.role === 'head' ? '/head' : user?.role === 'dean' ? '/dean' : '/doctor';
   const homeLabel =
-    user?.role === 'head' ? 'Head Overview' : user?.role === 'dean' ? 'Dean Console' : 'Live Session';
+    user?.role === 'head'
+      ? { en: 'Head Overview', ar: 'نظرة عامة على القسم' }
+      : user?.role === 'dean'
+        ? { en: 'Dean Console', ar: 'لوحة العميد' }
+        : { en: 'Live Session', ar: 'الجلسة المباشرة' };
 
   const nav = [
-    { key: 'dashboard', label: homeLabel, icon: user?.role === 'dean' ? 'building' : 'home', to: homeLink, section: 'Workspace' },
-    { key: 'reports', label: 'Attendance Reports', icon: 'chart' },
-    { key: 'signout', label: 'Sign out', icon: 'logout', onClick: logout, section: 'Account' },
+    { key: 'dashboard', label: homeLabel, icon: user?.role === 'dean' ? 'building' : 'home', to: homeLink, section: { en: 'Workspace', ar: 'مساحة العمل' } },
+    { key: 'reports', label: { en: 'Attendance Reports', ar: 'تقارير الحضور' }, icon: 'chart' },
+    { key: 'signout', label: { en: 'Sign out', ar: 'تسجيل الخروج' }, icon: 'logout', onClick: logout, section: { en: 'Account', ar: 'الحساب' } },
   ];
 
   return (
@@ -131,24 +137,24 @@ export default function DoctorReports() {
       role={user?.role}
       nav={nav}
       activeKey="reports"
-      title="Attendance reports"
-      crumb="Reports"
+      title={{ en: 'Attendance reports', ar: 'تقارير الحضور' }}
+      crumb={{ en: 'Reports', ar: 'التقارير' }}
       onLogout={logout}
       actions={
         <Button variant="secondary" size="sm" icon="arrow-left" onClick={() => navigate(homeLink)}>
-          Back
+          {lang === 'ar' ? 'رجوع' : 'Back'}
         </Button>
       }
     >
       <div className="page-head">
         <div className="page-head__text">
-          <h1>Course attendance report</h1>
-          <p>Inspect attendance per student, export a CSV, or send targeted warnings.</p>
+          <h1>{lang === 'ar' ? 'تقرير حضور المقررات' : 'Course attendance report'}</h1>
+          <p>{lang === 'ar' ? 'راجع الحضور لكل طالب، أو صدّر CSV، أو أرسل تحذيرات موجهة.' : 'Inspect attendance per student, export a CSV, or send targeted warnings.'}</p>
         </div>
         <div className="page-head__actions">
           {report && (
             <Badge variant="blue" dot>
-              {report.type === 'section' ? 'Sections' : 'Lectures'} · {report.total_sessions} held
+              {report.type === 'section' ? (lang === 'ar' ? 'أقسام' : 'Sections') : lang === 'ar' ? 'محاضرات' : 'Lectures'} · {report.total_sessions} {lang === 'ar' ? 'عقد' : 'held'}
             </Badge>
           )}
         </div>
@@ -159,7 +165,7 @@ export default function DoctorReports() {
           <div className="toolbar" style={{ alignItems: 'flex-end' }}>
             <div style={{ minWidth: 280, flex: '1 1 320px' }}>
               <Select
-                label="Course"
+                label={lang === 'ar' ? 'المقرر' : 'Course'}
                 icon="book"
                 value={selectedCourse}
                 onChange={(e) => {
@@ -167,7 +173,7 @@ export default function DoctorReports() {
                   loadReport(e.target.value);
                 }}
               >
-                <option value="">Choose a course…</option>
+                <option value="">{lang === 'ar' ? 'اختر مادة…' : 'Choose a course…'}</option>
                 {courses.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.course_code} — {c.course_name}
@@ -181,7 +187,7 @@ export default function DoctorReports() {
               disabled={!selectedCourse || !report}
               onClick={downloadCSV}
             >
-              Export CSV
+              {lang === 'ar' ? 'تصدير CSV' : 'Export CSV'}
             </Button>
             <Button
               variant="danger"
@@ -190,21 +196,21 @@ export default function DoctorReports() {
               disabled={selectedStudents.length === 0 || sendingWarnings}
               onClick={handleSendWarnings}
             >
-              Send warning ({selectedStudents.length})
+              {lang === 'ar' ? `إرسال تحذير (${selectedStudents.length})` : `Send warning (${selectedStudents.length})`}
             </Button>
           </div>
         </div>
       </div>
 
-      {loading && <Loader label="Building report…" />}
+      {loading && <Loader label={lang === 'ar' ? 'جارٍ إنشاء التقرير…' : 'Building report…'} />}
 
       {!loading && !report && (
         <div className="card">
           <div className="card__body">
             <EmptyState
               icon="chart"
-              title="Select a course to view its report"
-              description="Pick one of your courses above to see per-student attendance, export it, or send warnings."
+              title={lang === 'ar' ? 'اختر مادة لعرض تقريرها' : 'Select a course to view its report'}
+              description={lang === 'ar' ? 'اختر واحدة من مقرراتك أعلاه لعرض الحضور لكل طالب، أو صدّره، أو أرسل التحذيرات.' : 'Pick one of your courses above to see per-student attendance, export it, or send warnings.'}
             />
           </div>
         </div>
@@ -215,23 +221,23 @@ export default function DoctorReports() {
           <div className="kpi-grid stagger">
             <StatCard
               icon="calendar"
-              label={report.type === 'section' ? 'Sections held' : 'Lectures held'}
+              label={report.type === 'section' ? (lang === 'ar' ? 'الأقسام المعقدة' : 'Sections held') : lang === 'ar' ? 'المحاضرات المعقدة' : 'Lectures held'}
               value={<AnimatedNumber value={report.total_sessions} />}
               meta={`${report.course.course_code} · ${report.course.course_name}`}
               tone="navy"
             />
             <StatCard
               icon="users"
-              label="Students in report"
+              label={lang === 'ar' ? 'الطلاب في التقرير' : 'Students in report'}
               value={<AnimatedNumber value={filteredStudents.length} />}
-              meta={`${selectedStudents.length} selected`}
+              meta={lang === 'ar' ? `${selectedStudents.length} مُختار` : `${selectedStudents.length} selected`}
               tone="blue"
             />
             <StatCard
               icon="alert"
-              label="Below 75%"
+              label={lang === 'ar' ? 'تحت 75%' : 'Below 75%'}
               value={<AnimatedNumber value={belowThreshold} />}
-              meta="Eligible for a warning"
+              meta={lang === 'ar' ? 'مؤهل لاستلام تحذير' : 'Eligible for a warning'}
               tone={belowThreshold > 0 ? 'danger' : 'olive'}
             />
           </div>
@@ -242,16 +248,16 @@ export default function DoctorReports() {
                 <h2>
                   {report.course.course_code} — {report.course.course_name}
                 </h2>
-                <p>Select students to send them an attendance warning.</p>
+                <p>{lang === 'ar' ? 'اختر الطلاب لإرسال تحذير حضور.' : 'Select students to send them an attendance warning.'}</p>
               </div>
               <div className="data-bar__actions">
                 <div style={{ minWidth: 220 }}>
                   <Input
                     icon="search"
-                    placeholder="Search student name…"
+                    placeholder={lang === 'ar' ? 'ابحث باسم الطالب…' : 'Search student name…'}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    aria-label="Search student name"
+                    aria-label={lang === 'ar' ? 'ابحث باسم الطالب' : 'Search student name'}
                   />
                 </div>
               </div>
@@ -264,16 +270,16 @@ export default function DoctorReports() {
                     <th className="check-cell">
                       <input
                         type="checkbox"
-                        aria-label="Select all students"
+                        aria-label={lang === 'ar' ? 'تحديد جميع الطلاب' : 'Select all students'}
                         onChange={toggleAll}
                         checked={allSelected}
                       />
                     </th>
-                    <th>Student</th>
-                    <th>National ID</th>
-                    <th>Attended</th>
-                    <th>Absent</th>
-                    <th style={{ minWidth: 170 }}>Percentage</th>
+                    <th>{lang === 'ar' ? 'الطالب' : 'Student'}</th>
+                    <th>{lang === 'ar' ? 'البطاقة الوطنية' : 'National ID'}</th>
+                    <th>{lang === 'ar' ? 'حاضر' : 'Attended'}</th>
+                    <th>{lang === 'ar' ? 'غائب' : 'Absent'}</th>
+                    <th style={{ minWidth: 170 }}>{lang === 'ar' ? 'النسبة' : 'Percentage'}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -282,8 +288,8 @@ export default function DoctorReports() {
                       <td colSpan="6">
                         <EmptyState
                           icon="search"
-                          title="No students found"
-                          description="Try a different name in the search box."
+                          title={lang === 'ar' ? 'لا يوجد طلاب' : 'No students found'}
+                          description={lang === 'ar' ? 'جرّب اسمًا مختلفًا في مربع البحث.' : 'Try a different name in the search box.'}
                         />
                       </td>
                     </tr>
@@ -295,13 +301,13 @@ export default function DoctorReports() {
                           <td className="check-cell">
                             <input
                               type="checkbox"
-                              aria-label={`Select ${s.full_name}`}
+                              aria-label={`Select ${lang === 'ar' && s.full_name_ar ? s.full_name_ar : s.full_name}`}
                               checked={selected}
                               onChange={() => toggleStudent(s.student_id)}
                             />
                           </td>
                           <td>
-                            <span className="strong">{s.full_name}</span>
+                            <span className="strong">{lang === 'ar' && s.full_name_ar ? s.full_name_ar : s.full_name}</span>
                           </td>
                           <td className="muted-cell mono">{s.national_id}</td>
                           <td className="num">{s.attended}</td>
@@ -340,8 +346,7 @@ export default function DoctorReports() {
             <div className="data-bar" style={{ borderBottom: 0, borderTop: '1px solid var(--line-2)' }}>
               <div>
                 <p>
-                  <Icon name="info" size={13} /> Warnings are sent as in-app notifications to the
-                  selected students.
+                  <Icon name="info" size={13} /> {lang === 'ar' ? 'تُرسل التحذيرات كإشعارات داخل التطبيق للطلاب المحددين.' : 'Warnings are sent as in-app notifications to the selected students.'}
                 </p>
               </div>
               <div className="data-bar__actions">
@@ -353,7 +358,7 @@ export default function DoctorReports() {
                   disabled={selectedStudents.length === 0 || sendingWarnings}
                   onClick={handleSendWarnings}
                 >
-                  Send to {selectedStudents.length} student(s)
+                  {lang === 'ar' ? `إرسال إلى ${selectedStudents.length} طالب` : `Send to ${selectedStudents.length} student(s)`}
                 </Button>
               </div>
             </div>

@@ -20,13 +20,14 @@ transporter.verify((error, success) => {
 exports.sendInvitationEmail = async (to, full_name, role, token, frontendUrl) => {
   const baseUrl = frontendUrl || process.env.FRONTEND_URL;
   const acceptUrl = `${baseUrl}/invite/${token}`;
+  const greeting = full_name && full_name !== 'New User' ? full_name : to;
 
   const mailOptions = {
     from: `"Smart Attendance" <${process.env.EMAIL_USER}>`,
     to,
     subject: `Invitation to join Smart Attendance System as ${role}`,
     html: `
-      <h2>Hello ${full_name},</h2>
+      <h2>Hello ${greeting},</h2>
       <p>You have been invited to join <b>Smart Attendance System</b> as a <b>${role}</b>.</p>
       <p>Click the link below to accept the invitation and set your password:</p>
       <a href="${acceptUrl}" style="background:#007bff;color:#fff;padding:10px 20px;text-decoration:none;border-radius:5px;display:inline-block;">

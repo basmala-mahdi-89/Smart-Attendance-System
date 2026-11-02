@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 
 const LanguageContext = createContext({
   lang: 'en',
@@ -6,15 +6,35 @@ const LanguageContext = createContext({
 });
 
 export const LanguageProvider = ({ children }) => {
-  const [lang, setLang] = useState('en');
+  const [lang, setLangState] = useState(() => {
+    try {
+      const stored = localStorage.getItem('lang');
+      return stored === 'ar' ? 'ar' : 'en';
+    } catch {
+      return 'en';
+    }
+  });
+
+  const apply = useCallback((next) => {
+    document.documentElement.lang = next;
+    document.documentElement.dir = next === 'ar' ? 'rtl' : 'ltr';
+    try {
+      localStorage.setItem('lang', next);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    apply(lang);
+  }, [lang, apply]);
+
+  const setLang = useCallback((next) => {
+    setLangState(next);
+  }, []);
 
   const toggle = useCallback(() => {
-    setLang((prev) => {
-      const next = prev === 'en' ? 'ar' : 'en';
-      document.documentElement.lang = next;
-      document.documentElement.dir = next === 'ar' ? 'rtl' : 'ltr';
-      return next;
-    });
+    setLangState((prev) => (prev === 'en' ? 'ar' : 'en'));
   }, []);
 
   return (

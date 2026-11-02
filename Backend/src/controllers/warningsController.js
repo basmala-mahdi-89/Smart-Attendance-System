@@ -43,11 +43,11 @@ exports.sendWarnings = async (req, res) => {
     // 3. Loop over SELECTED students
     for (const studentId of student_ids) {
       const studentRes = await pool.query(
-        `SELECT s.id, s.full_name, s.email, COUNT(DISTINCT a.session_id) AS attended
+        `SELECT s.id, s.full_name, s.full_name_ar, s.email, COUNT(DISTINCT a.session_id) AS attended
          FROM students s
          LEFT JOIN attendance a ON a.student_id = s.id AND a.session_id IN (SELECT id FROM sessions WHERE course_id = $1 AND is_active = FALSE)
          WHERE s.id = $2
-         GROUP BY s.id, s.full_name, s.email`,
+         GROUP BY s.id, s.full_name, s.full_name_ar, s.email`,
         [course_id, studentId]
       );
 

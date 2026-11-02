@@ -47,7 +47,7 @@ export default function AuthLayout({ children, wide = false }) {
         <div className="auth__brand-top">
           <Logo variant="white" size="lg" subtitle={lang === 'ar' ? 'منصة الجامعة' : 'University Platform'} />
           <span className="auth__chip">
-            <span className="dot-pulse" /> All systems live
+            <span className="dot-pulse" /> {lang === 'ar' ? 'كل الأنظمة تعمل' : 'All systems live'}
           </span>
         </div>
 
@@ -60,13 +60,13 @@ export default function AuthLayout({ children, wide = false }) {
           </h1>
           <p>
             {lang === 'ar'
-              ? 'منصة واحدة لعميد الكليّة والعميد والطبيب والمهندس والطالب — مع تتبع الجلسات المباشر والتحذيرات التلقائية والحضور غير القابل للتزوير.'
+              ? 'منصة واحدة لعميد الكليّة والعميد والدكتور والمهندس والطالب — مع تتبع الجلسات المباشر والتحذيرات التلقائية والحضور غير القابل للتزوير.'
               : 'One platform for deans, heads, doctors, engineers and students — with live session tracking, automatic warnings and tamper-proof check-ins.'}
           </p>
 
           <ul className="auth__points">
             {points.map((point) => (
-              <li key={point.text}>
+              <li key={point.icon}>
                 <span className="auth__point-icon">
                   <Icon name={point.icon} size={18} />
                 </span>
@@ -78,13 +78,13 @@ export default function AuthLayout({ children, wide = false }) {
           <div className="auth__stage" aria-hidden="true">
             <div className="session-card session-card--main">
               <div className="session-card__head">
-                <span className="session-card__course">CS-301 · Database Systems</span>
+                <span className="session-card__course">{lang === 'ar' ? 'CS-301 · أنظمة قواعد البيانات' : 'CS-301 · Database Systems'}</span>
                 <span className="live-badge">
-                  <span className="dot-pulse" /> LIVE
+                  <span className="dot-pulse" /> {lang === 'ar' ? 'مباشر' : 'LIVE'}
                 </span>
               </div>
               <div className="session-card__value">
-                <AnimatedNumber value={42} /> <small>/ 48 checked in</small>
+                <AnimatedNumber value={42} /> <small>{lang === 'ar' ? '/ 48 حضور' : '/ 48 checked in'}</small>
               </div>
               <div className="session-card__bar">
                 <span />
@@ -96,7 +96,7 @@ export default function AuthLayout({ children, wide = false }) {
                   <span>NH</span>
                   <span>+9</span>
                 </span>
-                Updated just now · Room B-204
+                {lang === 'ar' ? 'تم التحديث للتو · القاعة B-204' : 'Updated just now · Room B-204'}
               </div>
             </div>
 
@@ -105,8 +105,8 @@ export default function AuthLayout({ children, wide = false }) {
                 <Icon name="qr" size={20} />
               </span>
               <div>
-                <b>Offline QR verified</b>
-                <span>TOTP · expires in 30s</span>
+                <b>{lang === 'ar' ? 'تم التحقق من QR hors-ligne' : 'Offline QR verified'}</b>
+                <span>{lang === 'ar' ? 'TOTP · ينتهي خلال 30 ثانية' : 'TOTP · expires in 30s'}</span>
               </div>
               <span className="ok">
                 <Icon name="shield-check" size={18} />
@@ -147,7 +147,7 @@ export default function AuthLayout({ children, wide = false }) {
           {children}
           <div className="auth__trust">
             {trust.map((item) => (
-              <span key={item.label}>
+              <span key={item.icon}>
                 <Icon name={item.icon} size={13} /> {lang === 'ar' ? item.label.ar : item.label.en}
               </span>
             ))}

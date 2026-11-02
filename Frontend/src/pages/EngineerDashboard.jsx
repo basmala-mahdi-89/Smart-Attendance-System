@@ -10,6 +10,7 @@ import Icon from '../components/ui/Icon';
 import { Select } from '../components/ui/Field';
 import { Alert, Badge, EmptyState, Loader, StatCard } from '../components/ui/Feedback';
 import { AnimatedNumber } from '../components/ui/Motion';
+import { useLanguage } from '../context/LanguageContext';
 
 const initials = (name = '') =>
   name
@@ -22,6 +23,7 @@ const initials = (name = '') =>
 
 export default function EngineerDashboard() {
   const { user, logout } = useAuth();
+  const { lang } = useLanguage();
   const navigate = useNavigate();
 
   const [courses, setCourses] = useState([]);
@@ -120,7 +122,7 @@ export default function EngineerDashboard() {
       setQrToken('');
       setManualResult(null);
     } catch (err) {
-      alert('Failed to end session');
+      alert(lang === 'ar' ? 'فشل إنهاء الجلسة' : 'Failed to end session');
     }
   };
 
@@ -152,11 +154,11 @@ export default function EngineerDashboard() {
     return matchMajor && matchGrade;
   });
 
-  const termLabel = currentTerm === '2' ? '2nd Term' : '1st Term';
+  const termLabel = currentTerm === '2' ? (lang === 'ar' ? 'الفصل الثاني' : '2nd Term') : lang === 'ar' ? 'الفصل الأول' : '1st Term';
 
   const nav = [
     { key: 'live', label: 'Live Section', icon: 'activity', section: 'Section control', onClick: () => setActiveTab('live') },
-    { key: 'courses', label: 'Section Courses', icon: 'book', onClick: () => setActiveTab('courses') },
+    { key: 'section-courses', label: 'Section Courses', icon: 'book', onClick: () => setActiveTab('section-courses') },
     { key: 'reports', label: 'Attendance Reports', icon: 'chart', to: '/doctor/reports', section: 'Management' },
     { key: 'signout', label: 'Sign out', icon: 'logout', onClick: logout, section: 'Account' },
   ];
@@ -168,12 +170,12 @@ export default function EngineerDashboard() {
         role="engineer"
         nav={nav}
         activeKey={activeTab}
-        title="Engineer workspace"
-        crumb="Engineer"
+        title={{ en: 'Engineer workspace', ar: 'مساحة المهندس' }}
+        crumb={{ en: 'Engineer', ar: 'المهندس' }}
         term={termLabel}
         onLogout={logout}
       >
-        <Loader label="Loading sections…" />
+        <Loader label={lang === 'ar' ? 'جارٍ تحميل الأقسام…' : 'Loading sections…'} />
       </DashboardLayout>
     );
   }
@@ -184,19 +186,19 @@ export default function EngineerDashboard() {
       role="engineer"
       nav={nav}
       activeKey={activeTab}
-      title={activeTab === 'courses' ? 'Section courses' : 'Live section'}
-      crumb="Engineer"
+      title={activeTab === 'section-courses' ? { en: 'Section courses', ar: 'مقررات القسم' } : { en: 'Live section', ar: 'الجزء المباشر' }}
+      crumb={{ en: 'Engineer', ar: 'المهندس' }}
       term={termLabel}
       onLogout={logout}
       actions={
         <>
           {activeSession && (
             <span className="chip chip--live">
-              <span className="dot-pulse" /> Section live
+              <span className="dot-pulse" /> {lang === 'ar' ? 'مباشر' : 'Section live'}
             </span>
           )}
           <Button variant="secondary" size="sm" icon="chart" onClick={() => navigate('/doctor/reports')}>
-            Reports
+            {lang === 'ar' ? 'التقارير' : 'Reports'}
           </Button>
         </>
       }
@@ -205,12 +207,16 @@ export default function EngineerDashboard() {
         <div className="stack">
           <div className="page-head" style={{ marginBottom: 0 }}>
             <div className="page-head__text">
-              <h1>Section control</h1>
-              <p>Run the section QR, register students manually and monitor live check-ins.</p>
+              <h1>{lang === 'ar' ? 'تحكم القسم' : 'Section control'}</h1>
+              <p>
+                {lang === 'ar'
+                  ? 'شغّل رمز QR للقسم، وأضف الطلاب يدوياً وشبّك بصمة الحضور.'
+                  : 'Run the section QR, register students manually and monitor live check-ins.'}
+              </p>
             </div>
             <div className="page-head__actions">
               <Badge variant={activeSession ? 'success' : 'neutral'} dot>
-                {activeSession ? 'Session active' : 'No active session'}
+                {activeSession ? (lang === 'ar' ? 'الجلسة نشطة' : 'Session active') : lang === 'ar' ? 'لا توجد جلسة' : 'No active session'}
               </Badge>
             </div>
           </div>
@@ -218,23 +224,23 @@ export default function EngineerDashboard() {
           <div className="kpi-grid stagger">
             <StatCard
               icon="book"
-              label="Assigned courses"
+              label={lang === 'ar' ? 'المقررات الموكلة' : 'Assigned courses'}
               value={<AnimatedNumber value={courses.length} />}
-              meta="This term"
+              meta={lang === 'ar' ? 'هذا الفصل' : 'This term'}
               tone="navy"
             />
             <StatCard
               icon="play"
-              label="Active section"
+              label={lang === 'ar' ? 'القسم المباشر' : 'Active section'}
               value={activeSession ? `#${activeSession.id}` : '—'}
-              meta={activeSession ? activeSession.course_code : 'Start one below'}
+              meta={activeSession ? activeSession.course_code : (lang === 'ar' ? 'ابدأ واحداً أدناه' : 'Start one below')}
               tone={activeSession ? 'teal' : 'default'}
             />
             <StatCard
               icon="activity"
-              label="Live check-ins"
+              label={lang === 'ar' ? 'الحضور المباشر' : 'Live check-ins'}
               value={<AnimatedNumber value={liveUpdates.length} />}
-              meta="This session"
+              meta={lang === 'ar' ? 'هذه الجلسة' : 'This session'}
               tone="blue"
             />
           </div>
@@ -248,20 +254,20 @@ export default function EngineerDashboard() {
                   </span>
                   <div>
                     <h2>
-                      Section #{activeSession.id} · {activeSession.course_code}
+                      {lang === 'ar' ? `القسم رقم ${activeSession.id}` : `Section #${activeSession.id}`} · {activeSession.course_code}
                     </h2>
-                    <p>Students scan this QR from their personal dashboard.</p>
+                    <p>{lang === 'ar' ? 'الطلاب يمسحون هذا الرمز من لوحة التحكم.' : 'Students scan this QR from their personal dashboard.'}</p>
                   </div>
                 </div>
                 <Button variant="danger" size="sm" icon="stop" onClick={endSession}>
-                  End section
+                  {lang === 'ar' ? 'إنهاء القسم' : 'End section'}
                 </Button>
               </div>
 
               <div className="session-panel__body">
                 <div className="session-card-dark" style={{ textAlign: 'center' }}>
                   <h3>
-                    <Icon name="qr" size={16} /> Section QR
+                    <Icon name="qr" size={16} /> {lang === 'ar' ? 'رمز القسم' : 'Section QR'}
                   </h3>
                   {qrToken ? (
                     <>
@@ -269,12 +275,12 @@ export default function EngineerDashboard() {
                         <QRCodeSVG value={qrToken} size={196} />
                       </div>
                       <div className="qr-frame__foot">
-                        <Icon name="refresh" size={13} /> Refreshing every 5 seconds
+                        <Icon name="refresh" size={13} /> {lang === 'ar' ? 'يتجدد كل 5 ثوانٍ' : 'Refreshing every 5 seconds'}
                       </div>
                     </>
                   ) : (
                     <div className="feed__empty" style={{ marginTop: 12 }}>
-                      <Icon name="refresh" size={18} /> Generating secure token…
+                      <Icon name="refresh" size={18} /> {lang === 'ar' ? 'جارٍ توليد الرمز الآمن…' : 'Generating secure token…'}
                     </div>
                   )}
                 </div>
@@ -282,10 +288,10 @@ export default function EngineerDashboard() {
                 <div className="stack">
                   <div className="session-card-dark">
                     <h3>
-                      <Icon name="key" size={16} /> Manual attendance
+                      <Icon name="key" size={16} /> {lang === 'ar' ? 'الحضور اليدوي' : 'Manual attendance'}
                     </h3>
                     <p style={{ marginTop: 4, fontSize: '0.72rem', color: 'rgba(255,255,255,0.5)' }}>
-                      Use the last 5 digits of the student ID.
+                      {lang === 'ar' ? 'استخدم آخر 5 أرقام من رقم الطالب.' : 'Use the last 5 digits of the student ID.'}
                     </p>
                     <form className="code-entry" onSubmit={handleManualAdd}>
                       <input
@@ -296,10 +302,10 @@ export default function EngineerDashboard() {
                         value={shortId}
                         onChange={(e) => setShortId(e.target.value.replace(/\D/g, ''))}
                         maxLength={5}
-                        aria-label="Student short ID"
+                        aria-label={lang === 'ar' ? 'معرف الطالب المختصر' : 'Student short ID'}
                       />
                       <Button type="submit" variant="success" icon="plus">
-                        Add
+                        {lang === 'ar' ? 'إضافة' : 'Add'}
                       </Button>
                     </form>
                     {manualResult && (
@@ -313,20 +319,20 @@ export default function EngineerDashboard() {
 
                   <div className="session-card-dark">
                     <h3>
-                      <Icon name="zap" size={16} /> Live attendance
+                      <Icon name="zap" size={16} /> {lang === 'ar' ? 'الحضور المباشر' : 'Live attendance'}
                     </h3>
                     {liveUpdates.length === 0 ? (
                       <div className="feed__empty" style={{ marginTop: 12 }}>
-                        <Icon name="activity" size={18} /> No live updates yet.
+                        <Icon name="activity" size={18} /> {lang === 'ar' ? 'لا توجد تحديثات حضور بعد.' : 'No live updates yet.'}
                       </div>
                     ) : (
                       <div className="feed" style={{ marginTop: 12 }}>
                         {liveUpdates.map((u, i) => (
                           <div key={`${u.student_id}-${i}`} className="feed__item">
-                            <span className="feed__avatar">{initials(u.full_name)}</span>
+                            <span className="feed__avatar">{initials(lang === 'ar' && u.full_name_ar ? u.full_name_ar : u.full_name)}</span>
                             <div style={{ minWidth: 0 }}>
-                              <b>{u.full_name}</b>
-                              <span>via {u.method}</span>
+                              <b>{lang === 'ar' && u.full_name_ar ? u.full_name_ar : u.full_name}</b>
+                              <span>{lang === 'ar' ? 'عبر' : 'via'} {u.method}</span>
                             </div>
                             <time>{new Date(u.at).toLocaleTimeString()}</time>
                           </div>
@@ -343,17 +349,17 @@ export default function EngineerDashboard() {
             <section className="card">
               <div className="data-bar">
                 <div>
-                  <h2>Open a section</h2>
-                  <p>Select a course to start a live section attendance window.</p>
+                  <h2>{lang === 'ar' ? 'ابدأ قسماً' : 'Open a section'}</h2>
+                  <p>{lang === 'ar' ? 'اختر مادة لبدء نافذة حضور قسم مباشر.' : 'Select a course to start a live section attendance window.'}</p>
                 </div>
-                <Badge variant="neutral">{filteredCourses.length} course(s)</Badge>
+                <Badge variant="neutral">{filteredCourses.length} {lang === 'ar' ? 'مقرر' : 'course(s)'}</Badge>
               </div>
               <div className="card__body">
                 {filteredCourses.length === 0 ? (
                   <EmptyState
                     icon="book"
-                    title="No courses for this selection"
-                    description="Change the filters to see other assigned courses."
+                    title={lang === 'ar' ? 'لا توجد مقررات' : 'No courses for this selection'}
+                    description={lang === 'ar' ? 'غيّر الفلاتر لرؤية مقررات أخرى مخصصة.' : 'Change the filters to see other assigned courses.'}
                   />
                 ) : (
                   <div className="course-grid">
@@ -392,16 +398,16 @@ export default function EngineerDashboard() {
         </div>
       )}
 
-      {activeTab === 'courses' && (
+      {activeTab === 'section-courses' && (
         <div className="stack">
           <div className="toolbar">
             <Select
-              label="Major"
+              label={lang === 'ar' ? 'التخصص' : 'Major'}
               value={selectedMajor}
               onChange={(e) => setSelectedMajor(e.target.value)}
               icon="layers"
             >
-              <option value="all">All majors</option>
+              <option value="all">{lang === 'ar' ? 'كل التخصصات' : 'All majors'}</option>
               {uniqueMajors.map((m) => (
                 <option key={m} value={m}>
                   {m}
@@ -409,15 +415,15 @@ export default function EngineerDashboard() {
               ))}
             </Select>
             <Select
-              label="Grade"
+              label={lang === 'ar' ? 'الصف' : 'Grade'}
               value={selectedGrade}
               onChange={(e) => setSelectedGrade(e.target.value)}
               icon="graduation-cap"
             >
-              <option value="all">All grades</option>
+              <option value="all">{lang === 'ar' ? 'كل الصفوف' : 'All grades'}</option>
               {uniqueGrades.map((g) => (
                 <option key={g} value={g}>
-                  Year {g}
+                  {lang === 'ar' ? `الصف ${g}` : `Year ${g}`}
                 </option>
               ))}
             </Select>
@@ -426,20 +432,20 @@ export default function EngineerDashboard() {
           <div className="card">
             <div className="data-bar">
               <div>
-                <h2>Section courses</h2>
-                <p>Courses where you are assigned as the section engineer.</p>
+                <h2>{lang === 'ar' ? 'مقررات القسم' : 'Section courses'}</h2>
+                <p>{lang === 'ar' ? 'المقررات التي أنت مهندس القسم المسؤول عنها.' : 'Courses where you are assigned as the section engineer.'}</p>
               </div>
-              <Badge variant="blue">{filteredCourses.length} course(s)</Badge>
+              <Badge variant="blue">{filteredCourses.length} {lang === 'ar' ? 'مقرر' : 'course(s)'}</Badge>
             </div>
             <div className="table-wrap">
               <table className="table">
                 <thead>
                   <tr>
-                    <th>Course</th>
-                    <th>Major</th>
-                    <th>Year / Term</th>
-                    <th>Students</th>
-                    <th>Action</th>
+                    <th>{lang === 'ar' ? 'المقرر' : 'Course'}</th>
+                    <th>{lang === 'ar' ? 'التخصص' : 'Major'}</th>
+                    <th>{lang === 'ar' ? 'السنة / الفصل' : 'Year / Term'}</th>
+                    <th>{lang === 'ar' ? 'الطلاب' : 'Students'}</th>
+                    <th>{lang === 'ar' ? 'إجراء' : 'Action'}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -450,7 +456,7 @@ export default function EngineerDashboard() {
                         <span className="muted-cell"> — {c.course_name}</span>
                       </td>
                       <td className="muted-cell">{c.major_name}</td>
-                      <td className="muted-cell nowrap">Year {c.academic_year} · Term {c.term || '1'}</td>
+                      <td className="muted-cell nowrap">{lang === 'ar' ? `السنة ${c.academic_year} · الفصل ${c.term || '1'}` : `Year ${c.academic_year} · Term ${c.term || '1'}`}</td>
                       <td className="num">{c.student_count}</td>
                       <td>
                         <Button
@@ -459,7 +465,7 @@ export default function EngineerDashboard() {
                           onClick={() => startSession(c.id)}
                           disabled={!!activeSession}
                         >
-                          Start section
+                          {lang === 'ar' ? 'ابدأ القسم' : 'Start section'}
                         </Button>
                       </td>
                     </tr>
@@ -467,7 +473,7 @@ export default function EngineerDashboard() {
                   {filteredCourses.length === 0 && (
                     <tr>
                       <td colSpan="5">
-                        <EmptyState icon="book" title="No courses found" />
+                        <EmptyState icon="book" title={lang === 'ar' ? 'لا توجد مقررات' : 'No courses found'} />
                       </td>
                     </tr>
                   )}

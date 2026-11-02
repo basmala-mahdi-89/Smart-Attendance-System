@@ -16,8 +16,8 @@ const transporter = nodemailer.createTransport({
 
 exports.register = async (req, res) => {
   try {
-    const { national_id, full_name, email, phone, academic_year, major_id, password } = req.body;
-
+    const { national_id, full_name, full_name_ar, email, phone, academic_year, major_id, password } = req.body;
+    
     if (!national_id || !full_name || !email || !phone || !academic_year || !major_id || !password) {
       return res.status(400).json({ message: 'All fields are required' });
     }
@@ -41,9 +41,9 @@ exports.register = async (req, res) => {
     const verifyToken = crypto.randomBytes(32).toString('hex');
 
     const result = await pool.query(
-      `INSERT INTO students (national_id, full_name, email, phone, academic_year, major_id, password_hash, personal_qr)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, full_name, email, status`,
-      [national_id, full_name, email, phone, academic_year, major_id, password_hash, verifyToken]
+      `INSERT INTO students (national_id, full_name, full_name_ar, email, phone, academic_year, major_id, password_hash, personal_qr)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id, full_name, full_name_ar, email, status`,
+      [national_id, full_name, full_name_ar || null, email, phone, academic_year, major_id, password_hash, verifyToken]
     );
 
     const verifyUrl = `${process.env.FRONTEND_URL}/verify-email/${verifyToken}`;
@@ -134,10 +134,10 @@ exports.scanQR = async (req, res) => {
     const student = studentRes.rows[0];
     if (student.status !== 'active') return res.status(403).json({ message: `Account is ${student.status}` });
 
-    // ⚡ التحقق من بصمة الجهاز
+    // ⚡ التحقق من بصمة الجهاز — يمنع حضور من جهاز آخر (proxy / مشاركة رمز QR)
     if (device_fingerprint && student.device_fingerprint) {
       if (student.device_fingerprint !== device_fingerprint) {
-        return res.status(403).json({ message: '❌ Wrong device. Login from your registered device.' });
+        return res.status(403).json({ message: '❌ Wrong device. Attendance is bound to another device. Please log in from your registered device.' });
       }
     } else if (device_fingerprint && !student.device_fingerprint) {
       await pool.query(`UPDATE students SET device_fingerprint = $1 WHERE id = $2`, [device_fingerprint, studentId]);

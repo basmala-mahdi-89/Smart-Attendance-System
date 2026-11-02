@@ -28,7 +28,7 @@ exports.doctorCourseReport = async (req, res) => {
     const totalSessions = parseInt(sessionsRes.rows[0].total);
 
     const studentsRes = await pool.query(
-      `SELECT s.id AS student_id, s.full_name, s.national_id, COUNT(DISTINCT a.session_id) AS attended
+      `SELECT s.id AS student_id, s.full_name, s.full_name_ar, s.national_id, COUNT(DISTINCT a.session_id) AS attended
        FROM enrollments e JOIN students s ON e.student_id = s.id
        LEFT JOIN attendance a ON a.student_id = s.id 
          AND a.session_id IN (SELECT id FROM sessions WHERE course_id = $1 AND is_active = FALSE AND type = $2)
@@ -67,7 +67,7 @@ exports.exportCourseCSV = async (req, res) => {
     const totalSessions = parseInt(sessionsRes.rows[0].total);
 
     const studentsRes = await pool.query(
-      `SELECT s.full_name, s.national_id, COUNT(DISTINCT a.session_id) AS attended
+      `SELECT s.full_name, s.full_name_ar, s.national_id, COUNT(DISTINCT a.session_id) AS attended
        FROM enrollments e JOIN students s ON e.student_id = s.id
        LEFT JOIN attendance a ON a.student_id = s.id AND a.session_id IN (SELECT id FROM sessions WHERE course_id = $1 AND is_active = FALSE)
        WHERE e.course_id = $1 GROUP BY s.id, s.full_name, s.national_id ORDER BY s.full_name`, [course_id]

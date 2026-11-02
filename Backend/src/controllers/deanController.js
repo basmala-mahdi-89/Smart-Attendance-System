@@ -196,7 +196,7 @@ exports.addHead = async (req, res) => {
 exports.getHeads = async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT s.id, s.full_name, s.email, s.national_id, s.role, m.id AS major_id, m.name AS major_name
+      `SELECT s.id, s.full_name, s.full_name_ar, s.email, s.national_id, s.role, m.id AS major_id, m.name AS major_name
        FROM staff s LEFT JOIN majors m ON s.major_id = m.id WHERE s.role = 'head' ORDER BY s.id`
     );
     res.json(result.rows);
@@ -302,13 +302,13 @@ exports.getDeanDashboardData = async (req, res) => {
     );
 
     const staffRes = await pool.query(
-      `SELECT s.id, s.full_name, s.email, s.national_id, s.role, s.status, m.name AS major_name
+      `SELECT s.id, s.full_name, s.full_name_ar, s.email, s.national_id, s.role, s.status, m.name AS major_name
        FROM staff s LEFT JOIN majors m ON s.major_id = m.id
        WHERE s.role != 'dean' ORDER BY s.role, s.full_name`
     );
 
     const studentsRes = await pool.query(
-      `SELECT s.id, s.full_name, s.national_id, s.academic_year, s.status, m.name AS major_name,
+      `SELECT s.id, s.full_name, s.full_name_ar, s.national_id, s.academic_year, s.status, m.name AS major_name,
               (SELECT COUNT(*) FROM enrollments e JOIN sessions ses ON e.course_id = ses.course_id WHERE e.student_id = s.id AND ses.is_active = FALSE) AS total_sessions,
               (SELECT COUNT(*) FROM attendance a WHERE a.student_id = s.id) AS attended_sessions
        FROM students s LEFT JOIN majors m ON s.major_id = m.id
@@ -604,7 +604,7 @@ exports.getHighRiskStudents = async (req, res) => {
     const threshold = parseFloat(req.query.threshold) || 75;
 
     const riskRes = await pool.query(
-      `SELECT s.id, s.full_name, s.national_id, s.email, s.academic_year, m.name AS major_name,
+      `SELECT s.id, s.full_name, s.full_name_ar, s.national_id, s.email, s.academic_year, m.name AS major_name,
               COUNT(DISTINCT ses.id) FILTER (WHERE ses.is_active = FALSE) AS total_sessions,
               COUNT(DISTINCT a.session_id) AS attended_sessions,
               ROUND(
@@ -620,7 +620,7 @@ exports.getHighRiskStudents = async (req, res) => {
        LEFT JOIN sessions ses ON ses.course_id = e.course_id AND ses.is_active = FALSE
        LEFT JOIN attendance a ON a.student_id = s.id AND a.session_id = ses.id
        WHERE s.status = 'active'
-       GROUP BY s.id, s.full_name, s.national_id, s.email, s.academic_year, m.name
+       GROUP BY s.id, s.full_name, s.full_name_ar, s.national_id, s.email, s.academic_year, m.name
        HAVING COUNT(DISTINCT ses.id) FILTER (WHERE ses.is_active = FALSE) > 0
           AND (COUNT(DISTINCT a.session_id)::numeric / COUNT(DISTINCT ses.id) FILTER (WHERE ses.is_active = FALSE)::numeric) * 100 < $1
        ORDER BY attendance_percentage ASC, s.full_name`,
@@ -672,7 +672,7 @@ exports.getActiveSessions = async (req, res) => {
       `SELECT ses.id, ses.course_id, ses.created_by, ses.session_date, ses.start_time, ses.is_active, ses.end_time,
               c.course_code, c.course_name, c.academic_year,
               m.name AS major_name,
-              st.full_name AS created_by_name, st.role AS created_by_role,
+              st.full_name AS created_by_name, st.full_name_ar AS created_by_name_ar, st.role AS created_by_role,
               (SELECT COUNT(*) FROM attendance a WHERE a.session_id = ses.id) AS attendance_count,
               (SELECT COUNT(*) FROM enrollments e WHERE e.course_id = ses.course_id) AS enrolled_count
        FROM sessions ses
@@ -752,7 +752,7 @@ exports.getAnalytics = async (req, res) => {
 
     // Most Absent Students (Overall)
     const mostAbsentRes = await pool.query(
-      `SELECT s.id, s.full_name, s.national_id, m.name AS major_name, s.academic_year,
+      `SELECT s.id, s.full_name, s.full_name_ar, s.national_id, m.name AS major_name, s.academic_year,
               COUNT(DISTINCT ses.id) FILTER (WHERE ses.is_active = FALSE) AS total_sessions,
               COUNT(DISTINCT a.session_id) AS attended_sessions,
               (COUNT(DISTINCT ses.id) FILTER (WHERE ses.is_active = FALSE) - COUNT(DISTINCT a.session_id)) AS absent_count,

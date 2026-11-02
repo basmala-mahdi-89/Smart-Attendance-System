@@ -7,10 +7,13 @@ import DashboardLayout from '../components/layout/DashboardLayout';
 import Button from '../components/ui/Button';
 import Icon from '../components/ui/Icon';
 import { Alert, Badge } from '../components/ui/Feedback';
+import { useLanguage } from '../context/LanguageContext';
+import { getDeviceFingerprint } from '../utils/deviceFingerprint';
 
 export default function StudentScan() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { lang } = useLanguage();
   const [result, setResult] = useState(null);
   const scannerRef = useRef(null);
 
@@ -26,7 +29,10 @@ export default function StudentScan() {
         if (scanned) return;
         scanned = true;
         try {
-          const res = await client.post('/students/scan', { qr_token: decodedText });
+          const res = await client.post('/students/scan', {
+            qr_token: decodedText,
+            device_fingerprint: getDeviceFingerprint(),
+          });
           setResult({ success: true, message: res.data.message });
           scanner.clear().catch(() => {});
         } catch (err) {
@@ -61,23 +67,23 @@ export default function StudentScan() {
       role="student"
       nav={nav}
       activeKey="scan"
-      title="Scan session QR"
-      crumb="Student · Attendance"
+      title={{ en: 'Scan session QR', ar: 'مسح رمز الجلسة' }}
+      crumb={{ en: 'Student · Attendance', ar: 'الطالب · الحضور' }}
       onLogout={logout}
       actions={
         <Button variant="secondary" size="sm" icon="arrow-left" onClick={() => navigate('/student')}>
-          Dashboard
+          {lang === 'ar' ? 'لوحة التحكم' : 'Dashboard'}
         </Button>
       }
     >
       <div className="page-head">
         <div className="page-head__text">
-          <h1>Scan the doctor's QR</h1>
-          <p>Point your camera at the rotating QR shown in the lecture hall.</p>
+          <h1>{lang === 'ar' ? 'امسح رمز الدكتور' : "Scan the doctor's QR"}</h1>
+          <p>{lang === 'ar' ? 'وجّه كاميرتك نحو الرمز الظاهر في قاعة المحاضرة.' : 'Point your camera at the rotating QR shown in the lecture hall.'}</p>
         </div>
         <div className="page-head__actions">
           <Badge variant="blue" dot>
-            Camera · live scanning
+            {lang === 'ar' ? 'الكاميرا · مسح مباشر' : 'Camera · live scanning'}
           </Badge>
         </div>
       </div>
@@ -91,7 +97,7 @@ export default function StudentScan() {
           <div className="stack" style={{ marginTop: 16, gap: 12 }}>
             <div className="row" style={{ gap: 9, fontSize: '0.8rem', color: 'var(--muted)' }}>
               <Icon name="info" size={16} />
-              <span>The QR refreshes every 5 seconds — if it expires, scan the new one.</span>
+              <span>{lang === 'ar' ? 'يتجدد الرمز كل 5 ثوانٍ — إذا انتهت صلاحيته، امسح الرمز الجديد.' : 'The QR refreshes every 5 seconds — if it expires, scan the new one.'}</span>
             </div>
 
             {result && (
@@ -99,7 +105,7 @@ export default function StudentScan() {
                 <Alert variant={result.success ? 'success' : 'error'}>{result.message}</Alert>
                 {result.success && (
                   <Button variant="success" icon="arrow-left" onClick={() => navigate('/student')}>
-                    Back to dashboard
+                    {lang === 'ar' ? 'العودة إلى لوحة التحكم' : 'Back to dashboard'}
                   </Button>
                 )}
               </div>

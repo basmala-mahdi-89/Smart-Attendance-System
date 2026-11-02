@@ -62,7 +62,7 @@ export const getInvitation = async (token) => {
   return data;
 };
 
-export const acceptInvitation = async (token, password) => {
-  const { data } = await client.post(`/invitations/${token}/accept`, { password });
+export const acceptInvitation = async (token, payload) => {
+  const { data } = await client.post(`/invitations/${token}/accept`, payload);
   return data;
 };
