@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Logo from '../ui/Logo';
 import Icon from '../ui/Icon';
@@ -39,10 +39,38 @@ export default function DashboardLayout({
   children,
 }) {
   const navigate = useNavigate();
+  const contentRef = useRef(null);
   const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const [isMobile, setIsMobile] = useState(
     typeof window !== 'undefined' ? window.innerWidth <= 860 : false
   );
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 6);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // Replay the page transition whenever the active section changes.
+  useEffect(() => {
+    const node = contentRef.current;
+    if (!node) return;
+    node.classList.remove('content--enter');
+    void node.offsetWidth;
+    node.classList.add('content--enter');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [activeKey, title]);
+
+  useEffect(() => {
+    if (!title) return undefined;
+    const previous = document.title;
+    document.title = `${title} · Smart Attendance`;
+    return () => {
+      document.title = previous;
+    };
+  }, [title]);
 
   useEffect(() => {
     const onResize = () => {
@@ -80,6 +108,9 @@ export default function DashboardLayout({
 
   return (
     <div className="shell">
+      <a className="skip-link" href="#main-content">
+        Skip to content
+      </a>
       <aside className={`sidebar ${open ? 'is-open' : ''}`} aria-label="Main navigation">
         <div className="sidebar__brand">
           <Logo variant="white" size="sm" subtitle="Attendance Platform" />
@@ -149,7 +180,7 @@ export default function DashboardLayout({
       {open && <div className="sidebar-scrim" onClick={() => setOpen(false)} aria-hidden="true" />}
 
       <div className="main">
-        <header className="topbar">
+        <header className={`topbar ${scrolled ? 'is-scrolled' : ''}`.trim()}>
           <button
             type="button"
             className="btn btn--icon btn--ghost topbar__menu"
@@ -174,7 +205,7 @@ export default function DashboardLayout({
           </div>
         </header>
 
-        <main className="content">{children}</main>
+        <main className="content" id="main-content" tabIndex={-1} ref={contentRef}>{children}</main>
       </div>
     </div>
   );
