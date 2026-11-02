@@ -66,7 +66,7 @@ export default function AuthLayout({ children, wide = false }) {
 
           <ul className="auth__points">
             {points.map((point) => (
-              <li key={point.text}>
+              <li key={point.text.en}>
                 <span className="auth__point-icon">
                   <Icon name={point.icon} size={18} />
                 </span>
@@ -147,7 +147,7 @@ export default function AuthLayout({ children, wide = false }) {
           {children}
           <div className="auth__trust">
             {trust.map((item) => (
-              <span key={item.label}>
+              <span key={item.label.en}>
                 <Icon name={item.icon} size={13} /> {lang === 'ar' ? item.label.ar : item.label.en}
               </span>
             ))}
