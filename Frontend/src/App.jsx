@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
+import ErrorBoundary from './components/ErrorBoundary';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -21,7 +22,8 @@ function App() {
     <AuthProvider>
       <LanguageProvider>
         <BrowserRouter>
-        <Routes>
+          <ErrorBoundary>
+            <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/invite/:token" element={<AcceptInvitation />} />
@@ -79,7 +81,8 @@ function App() {
 
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
+            </Routes>
+          </ErrorBoundary>
         </BrowserRouter>
       </LanguageProvider>
     </AuthProvider>

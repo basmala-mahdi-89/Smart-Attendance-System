@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Logo from '../ui/Logo';
 import Icon from '../ui/Icon';
@@ -111,17 +111,44 @@ export default function DashboardLayout({
 }) {
   const navigate = useNavigate();
   const { lang, toggle } = useLanguage();
+  const contentRef = useRef(null);
   const t = (value, fallback = value) =>
     value && typeof value === 'object' ? value[lang] || value.en || fallback : value;
   const navLabel = (item) =>
     item.label && typeof item.label === 'object'
       ? item.label[lang] || item.label.en
       : NAV_I18N[item.key]?.[lang] || NAV_I18N[item.key]?.en || item.label;
-
   const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const [isMobile, setIsMobile] = useState(
     typeof window !== 'undefined' ? window.innerWidth <= 860 : false
   );
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 6);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // Replay the page transition whenever the active section changes.
+  useEffect(() => {
+    const node = contentRef.current;
+    if (!node) return;
+    node.classList.remove('content--enter');
+    void node.offsetWidth;
+    node.classList.add('content--enter');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [activeKey, title]);
+
+  useEffect(() => {
+    if (!title) return undefined;
+    const previous = document.title;
+    document.title = `${title} · Smart Attendance`;
+    return () => {
+      document.title = previous;
+    };
+  }, [title]);
 
   useEffect(() => {
     const onResize = () => {
@@ -159,6 +186,9 @@ export default function DashboardLayout({
 
   return (
     <div className="shell">
+      <a className="skip-link" href="#main-content">
+        Skip to content
+      </a>
       <aside className={`sidebar ${open ? 'is-open' : ''}`} aria-label={lang === 'ar' ? 'التنقل الرئيسي' : 'Main navigation'}>
         <div className="sidebar__brand">
           <Logo variant="white" size="sm" subtitle={lang === 'ar' ? 'منصة الحضور' : 'Attendance Platform'} />
@@ -228,7 +258,7 @@ export default function DashboardLayout({
       {open && <div className="sidebar-scrim" onClick={() => setOpen(false)} aria-hidden="true" />}
 
       <div className="main">
-        <header className="topbar">
+        <header className={`topbar ${scrolled ? 'is-scrolled' : ''}`.trim()}>
           <button
             type="button"
             className="btn btn--icon btn--ghost topbar__menu"
@@ -263,7 +293,7 @@ export default function DashboardLayout({
           </div>
         </header>
 
-        <main className="content">{children}</main>
+        <main className="content" id="main-content" tabIndex={-1} ref={contentRef}>{children}</main>
       </div>
     </div>
   );

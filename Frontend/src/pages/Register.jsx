@@ -78,13 +78,19 @@ export default function Register() {
 
   return (
     <AuthLayout wide>
-      <div className="auth__head">
+      <div className="auth__head anim-up">
         <span className="eyebrow">
           <Icon name="graduation-cap" size={14} /> {lang === 'ar' ? 'تأهيل طالب جديد' : 'Student onboarding'}
         </span>
         <h1>{lang === 'ar' ? 'أنشئ حسابك' : 'Create your account'}</h1>
         <p>{lang === 'ar' ? 'سجّل مرة واحدة، ثم انتظر موافقة رئيس القسم على قبولك.' : 'Register once, then wait for your Head of Department to approve you.'}</p>
       </div>
+
+      <ol className="steps" aria-label="Registration steps">
+        <li className="is-active">{lang === 'ar' ? 'بياناتك' : 'Your details'}</li>
+        <li>{lang === 'ar' ? 'تحقق البريد' : 'Verify email'}</li>
+        <li>{lang === 'ar' ? 'موافقة القسم' : 'Head approval'}</li>
+      </ol>
 
       <form className="auth__form" onSubmit={handleSubmit}>
         {error && <Alert variant="error">{error}</Alert>}
@@ -225,7 +231,10 @@ export default function Register() {
       </form>
 
       <div className="auth__foot">
-        {lang === 'ar' ? 'لديك حساب بالفعل؟' : 'Already have an account?'} <Link to="/login">{lang === 'ar' ? 'سجّل الدخول' : 'Sign in'}</Link>
+        {lang === 'ar' ? 'لديك حساب بالفعل؟' : 'Already have an account?'}{' '}
+        <Link to="/login">
+          {lang === 'ar' ? 'سجّل الدخول' : 'Sign in'} <Icon name="arrow-right" size={13} />
+        </Link>
       </div>
     </AuthLayout>
   );
