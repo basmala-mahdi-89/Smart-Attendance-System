@@ -217,7 +217,7 @@ exports.getMyCourses = async (req, res) => {
        FROM enrollments e 
        JOIN courses c ON e.course_id = c.id 
        JOIN majors m ON c.major_id = m.id
-       WHERE e.student_id = $1 AND c.term = m.current_term
+       WHERE e.student_id = $1
        ORDER BY c.course_code`, [studentId]
     );
     

@@ -69,16 +69,13 @@ exports.login = async (req, res) => {
         await pool.query(`UPDATE students SET is_verified = TRUE WHERE id = $1`, [user.id]);
       }
 
-      // ⚡ Device Fingerprint — bind account to the first device used to log in
+      // ⚡ Device Fingerprint — save on first login, update when logging in from a new device
       const { device_fingerprint } = req.body;
-      if (device_fingerprint && !user.device_fingerprint) {
+      if (device_fingerprint) {
         await pool.query(
           `UPDATE students SET device_fingerprint = $1 WHERE id = $2`,
           [device_fingerprint, user.id]
         );
-      } else if (device_fingerprint && user.device_fingerprint && user.device_fingerprint !== device_fingerprint) {
-        // Account already bound to a different device — block login from a new device
-        return res.status(403).json({ message: '❌ This account is bound to another device. Please log in from your registered device.' });
       }
 
       // Login limit removed
