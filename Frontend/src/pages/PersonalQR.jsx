@@ -117,8 +117,25 @@ export default function PersonalQR() {
     updateOTP();
 
     const interval = setInterval(() => {
-      updateOTP();
-      setTimeLeft((prev) => (prev > 0 ? prev - 1 : 30));
+      setTimeLeft((prev) => {
+        const next = prev > 0 ? prev - 1 : 30;
+        if (prev === 0) {
+          // OTP rolled over -> regenerate the QR data (only on rollover, not every second)
+          generateTOTP(secret)
+            .then((otp) => {
+              setToken(otp);
+              setQrData(
+                JSON.stringify({
+                  type: 'student_personal',
+                  student_id: String(studentId),
+                  otp: otp,
+                })
+              );
+            })
+            .catch(() => {});
+        }
+        return next;
+      });
     }, 1000);
 
     return () => clearInterval(interval);
