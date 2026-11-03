@@ -126,13 +126,11 @@ export default function AuthLayout({ children, wide = false }) {
       <main className="auth__main">
         <button
           type="button"
+          className="auth__lang"
           onClick={toggle}
-          style={{
-            position: 'fixed', top: 18, insetInlineEnd: 18, zIndex: 60,
-            padding: '8px 14px', borderRadius: 999, border: '1px solid rgba(127,146,179,0.35)',
-            background: 'rgba(255,255,255,0.9)', color: '#16233f', fontWeight: 700, cursor: 'pointer',
-          }}
+          aria-label={lang === 'en' ? 'Switch to Arabic' : 'Switch to English'}
         >
+          <Icon name="globe" size={15} />
           {lang === 'en' ? 'العربية' : 'English'}
         </button>
         <div

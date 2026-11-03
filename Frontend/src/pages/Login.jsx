@@ -169,6 +169,10 @@ export default function Login() {
           required
         />
 
+        <div className="auth__forgot">
+          <Link to="/forgot-password">{ar ? 'نسيت كلمة المرور؟' : 'Forgot password?'}</Link>
+        </div>
+
         <div className="auth__meta">
           <span className="row" style={{ gap: 7 }}>
             <Icon name="lock" size={14} />

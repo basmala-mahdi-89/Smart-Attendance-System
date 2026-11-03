@@ -5,6 +5,8 @@ import ErrorBoundary from './components/ErrorBoundary';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import StudentDashboard from './pages/StudentDashboard';
 import DoctorDashboard from './pages/DoctorDashboard';
 import EngineerDashboard from './pages/EngineerDashboard';
@@ -26,6 +28,8 @@ function App() {
             <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password/:token" element={<ResetPassword />} />
           <Route path="/invite/:token" element={<AcceptInvitation />} />
 
           <Route path="/student" element={

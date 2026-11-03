@@ -44,6 +44,28 @@ export default function Warnings() {
 
   return (
     <DashboardLayout user={user} role="student" nav={nav} activeKey="warnings" title={{ en: 'Warnings', ar: 'التحذيرات' }} crumb={{ en: 'Student · Warnings', ar: 'الطالب · التحذيرات' }} onLogout={logout}>
+      <div className="page-head">
+        <div className="page-head__text">
+          <h1>{lang === 'ar' ? 'تحذيرات الحضور' : 'Attendance warnings'}</h1>
+          <p>
+            {lang === 'ar'
+              ? 'تنبيهات تلقائية تُرسل عندما يتجاوز غيابك الحد المسموح للمادة.'
+              : 'Automatic alerts raised when your absence crosses the limit set for a course.'}
+          </p>
+        </div>
+        <div className="page-head__actions">
+          <Badge variant={warnings.length > 0 ? 'danger' : 'success'} dot>
+            {warnings.length > 0
+              ? lang === 'ar'
+                ? `${warnings.length} تحذير نشط`
+                : `${warnings.length} active warning(s)`
+              : lang === 'ar'
+                ? 'لا توجد تحذيرات'
+                : 'All clear'}
+          </Badge>
+        </div>
+      </div>
+
       <div className="card">
         <div className="data-bar">
           <div>
