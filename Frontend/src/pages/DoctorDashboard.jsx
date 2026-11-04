@@ -82,6 +82,13 @@ export default function DoctorDashboard() {
     }
   };
 
+  // ⚡ Polling كل 5 ثواني — بديل WebSocket على Vercel (محلياً التحديث لحظياً زي ما هو)
+  useEffect(() => {
+    if (!activeSession) return;
+    const poll = setInterval(() => loadAttendanceList(activeSession.id), 5000);
+    return () => clearInterval(poll);
+  }, [activeSession?.id]);
+
   const openAttendees = async (session) => {
     setSelectedHistorySession(session);
     setShowAttendees(true);
@@ -205,13 +212,17 @@ export default function DoctorDashboard() {
         );
       }
     };
-    socket.on('attendance-update', handleUpdate);
-    socket.on('attendance-removed', handleRemove);
+    if (socket) {
+      socket.on('attendance-update', handleUpdate);
+      socket.on('attendance-removed', handleRemove);
+    }
 
     return () => {
       mounted = false;
-      socket.off('attendance-update', handleUpdate);
-      socket.off('attendance-removed', handleRemove);
+      if (socket) {
+        socket.off('attendance-update', handleUpdate);
+        socket.off('attendance-removed', handleRemove);
+      }
       disconnectSocket();
       if (qrIntervalRef.current) clearInterval(qrIntervalRef.current);
     };

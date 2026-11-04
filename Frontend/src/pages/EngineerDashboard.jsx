@@ -86,15 +86,41 @@ export default function EngineerDashboard() {
     const handleUpdate = (data) => {
       setLiveUpdates((prev) => [data, ...prev].slice(0, 20));
     };
-    socket.on('attendance-update', handleUpdate);
+    if (socket) {
+      socket.on('attendance-update', handleUpdate);
+    }
 
     return () => {
       mounted = false;
-      socket.off('attendance-update', handleUpdate);
+      if (socket) {
+        socket.off('attendance-update', handleUpdate);
+      }
       disconnectSocket();
       if (qrIntervalRef.current) clearInterval(qrIntervalRef.current);
     };
   }, []);
+
+  // ⚡ Polling كل 5 ثواني — بديل WebSocket على Vercel
+  useEffect(() => {
+    if (!activeSession) return;
+    const poll = setInterval(async () => {
+      try {
+        const { data } = await client.get(`/doctor/sessions/${activeSession.id}/attendance-list`);
+        setLiveUpdates(
+          data.map((x) => ({
+            attendance_id: x.attendance_id,
+            student_id: x.student_id,
+            full_name: x.full_name,
+            method: x.method,
+            at: x.created_at,
+          })).slice(0, 20)
+        );
+      } catch (e) {
+        /* silent */
+      }
+    }, 5000);
+    return () => clearInterval(poll);
+  }, [activeSession?.id]);
 
   const startSession = async (courseId) => {
     try {

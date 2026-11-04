@@ -1,10 +1,12 @@
 import { io } from 'socket.io-client'; // ⚡ لاحظ -client هنا
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || window.location.origin; // ⚡ في الإنتاج يقرأ من متغير VITE_SOCKET_URL
+const SOCKET_DISABLED = import.meta.env.VITE_ENABLE_SOCKET === 'false'; // ⚡ على Vercel نوقف الـ WebSocket ونستخدم polling
 
 let socket = null;
 
 export function connectSocket() {
+  if (SOCKET_DISABLED) return null;
   if (!socket) {
     socket = io(SOCKET_URL, {
       path: '/socket.io',
@@ -17,7 +19,7 @@ export function connectSocket() {
   return socket;
 }
 
-export function getSocket() { return socket; }
+export function getSocket() { return SOCKET_DISABLED ? null : socket; }
 export function disconnectSocket() {
   if (socket) { socket.disconnect(); socket = null; }
 }
