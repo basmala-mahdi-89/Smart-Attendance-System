@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const client = axios.create({
-  baseURL: '/api', // ⚡ رجعنا للـ Vite Proxy عشان نتخلص من مشاكل الشبكة
+  baseURL: import.meta.env.VITE_API_URL || '/api', // ⚡ في الإنتاج يقرأ من متغير VITE_API_URL، وفي التطوير يفضل على Vite Proxy
   withCredentials: true
 });
 

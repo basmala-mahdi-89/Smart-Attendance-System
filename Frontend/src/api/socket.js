@@ -1,6 +1,6 @@
 import { io } from 'socket.io-client'; // ⚡ لاحظ -client هنا
 
-const SOCKET_URL = window.location.origin;
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || window.location.origin; // ⚡ في الإنتاج يقرأ من متغير VITE_SOCKET_URL
 
 let socket = null;
 
