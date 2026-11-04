@@ -1,8 +1,32 @@
 # 📸 Smart Attendance System
 
+![Node.js](https://img.shields.io/badge/Node.js-18%2B-339933?logo=node.js&logoColor=white)
+![Express](https://img.shields.io/badge/Express-5-000000?logo=express&logoColor=white)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
+![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14%2B-4169E1?logo=postgresql&logoColor=white)
+![Socket.IO](https://img.shields.io/badge/Socket.IO-4-010101?logo=socketdotio&logoColor=white)
+![Vercel Ready](https://img.shields.io/badge/Vercel-Ready-black?logo=vercel&logoColor=white)
+![Migrations](https://img.shields.io/badge/Migrations-Auto%20on%20Boot-blue)
+
 A full-stack **QR-based attendance management system** for universities, built with **React (Vite)**, **Express 5**, **Socket.IO**, and **PostgreSQL**. It supports two fraud-resistant attendance flows — dynamic **Session QR codes** (JWT, rotated every 5s) and **Personal QR codes** (TOTP, rotated every 30s) — plus live dashboards, analytics, and role-based access for Deans, Heads, Doctors, and Students.
 
 > 🌐 This README includes an [Arabic quick-start section](#مقدمة-سريعة-بالعربي) at the end.
+
+## 📑 Table of Contents
+
+1. [Features](#-features)
+2. [Architecture](#-architecture)
+3. [Tech Stack](#-tech-stack)
+4. [Project Structure](#-project-structure)
+5. [Quick Start (Local)](#-quick-start-local)
+6. [Environment Variables](#️-environment-variables-reference)
+7. [API Overview](#-api-overview)
+8. [Deployment](#️-deployment)
+9. [Security Notes](#-security-notes)
+10. [Troubleshooting](#-troubleshooting-from-real-debugging-sessions)
+11. [Author](#-author)
+12. [القسم بالعربي](#مقدمة-سريعة-بالعربي)
 
 ---
 
@@ -315,3 +339,11 @@ cd Frontend && npm run dev         # بورت 5173 مع HTTPS للكاميرا
 4. من جهازك مرة واحدة: `$env:DATABASE_URL="…"; node src/runMigrations.js`
 5. مشروع 2: مجلد جذر `Frontend` + `VITE_API_URL = رابط-الباك/api` + `VITE_ENABLE_SOCKET=false`.
 6. افتح الرابط من الموبايل — HTTPS حقيقي والكاميرا تشتغل على طول 🎉
+
+---
+
+## 👩‍💻 Author
+
+**Basmala Mahdi** — graduation project.
+- GitHub: [@basmala-mahdi-89](https://github.com/basmala-mahdi-89)
+- Repo: [Smart-Attendance-System](https://github.com/basmala-mahdi-89/Smart-Attendance-System)
