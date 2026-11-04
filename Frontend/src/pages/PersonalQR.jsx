@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -12,9 +12,9 @@ import { useLanguage } from '../context/LanguageContext';
 
 function base32Decode(base32) {
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-  let bits = 0,
-    value = 0,
-    index = 0;
+  let bits = 0;
+  let value = 0;
+  let index = 0;
   const buffer = new Uint8Array(Math.ceil((base32.length * 5) / 8));
   for (let i = 0; i < base32.length; i++) {
     const val = alphabet.indexOf(base32[i].toUpperCase());
@@ -69,6 +69,7 @@ export default function PersonalQR() {
   const [qrData, setQrData] = useState('');
   const [loading, setLoading] = useState(true);
   const [timeLeft, setTimeLeft] = useState(30);
+  const counterRef = useRef(-1);
 
   useEffect(() => {
     const loadSecret = async () => {
@@ -94,51 +95,37 @@ export default function PersonalQR() {
         setLoading(false);
       }
     };
-    if (user) {
-      loadSecret();
-    }
+    if (user) loadSecret();
   }, [user]);
 
   useEffect(() => {
     if (!secret || !studentId) return;
 
-    const updateOTP = async () => {
+    let cancelled = false;
+
+    const tick = async () => {
+      const epoch = Math.floor(Date.now() / 1000);
+      const counter = Math.floor(epoch / 30);
+      const remaining = 30 - (epoch % 30);
+
+      setTimeLeft(remaining);
+
+      if (counter === counterRef.current) return;
+      counterRef.current = counter;
+
       const otp = await generateTOTP(secret);
+      if (cancelled) return;
       setToken(otp);
-      setQrData(
-        JSON.stringify({
-          type: 'student_personal',
-          student_id: String(studentId),
-          otp: otp,
-        })
-      );
+      setQrData(JSON.stringify({ type: 'student_personal', student_id: String(studentId), otp }));
     };
 
-    updateOTP();
+    tick();
+    const id = setInterval(tick, 1000);
 
-    const interval = setInterval(() => {
-      setTimeLeft((prev) => {
-        const next = prev > 0 ? prev - 1 : 30;
-        if (prev === 0) {
-          // OTP rolled over -> regenerate the QR data (only on rollover, not every second)
-          generateTOTP(secret)
-            .then((otp) => {
-              setToken(otp);
-              setQrData(
-                JSON.stringify({
-                  type: 'student_personal',
-                  student_id: String(studentId),
-                  otp: otp,
-                })
-              );
-            })
-            .catch(() => {});
-        }
-        return next;
-      });
-    }, 1000);
-
-    return () => clearInterval(interval);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
   }, [secret, studentId]);
 
   const nav = [

@@ -20,7 +20,7 @@ export default function StudentScan() {
   useEffect(() => {
     const scanner = new Html5QrcodeScanner(
       'reader',
-      { fps: 5, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 },
+      { fps: 5, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0, facingMode: 'environment' },
       false
     );
     let scanned = false;
@@ -29,10 +29,11 @@ export default function StudentScan() {
         if (scanned) return;
         scanned = true;
         try {
-          const res = await client.post('/students/scan', {
-            qr_token: decodedText,
-            device_fingerprint: getDeviceFingerprint(),
-          });
+          let payload = null;
+          try { payload = JSON.parse(decodedText); } catch (e) { payload = null; }
+          const res = payload && payload.type === 'student_personal'
+            ? await client.post('/students/scan', { qr_data: decodedText, device_fingerprint: getDeviceFingerprint() })
+            : await client.post('/students/scan', { qr_token: decodedText, device_fingerprint: getDeviceFingerprint() });
           setResult({ success: true, message: res.data.message });
           scanner.clear().catch(() => {});
         } catch (err) {

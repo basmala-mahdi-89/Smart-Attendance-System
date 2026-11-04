@@ -49,7 +49,7 @@ exports.scanStudentPersonalQR = async (req, res) => {
     const dupCheck = await pool.query(`SELECT id FROM attendance WHERE session_id = $1 AND student_id = $2`, [session_id, student.id]);
     if (dupCheck.rows.length > 0) return res.status(400).json({ message: 'Student already marked present' });
 
-    const result = await pool.query(`INSERT INTO attendance (session_id, student_id, method) VALUES ($1, $2, 'qr') RETURNING *`, [session_id, student.id]);
+    const result = await pool.query(`INSERT INTO attendance (session_id, student_id, method) VALUES ($1, $2, 'qr_scan') RETURNING *`, [session_id, student.id]);
 
     const io = req.app.get('io');
     if (io) {
@@ -57,7 +57,7 @@ exports.scanStudentPersonalQR = async (req, res) => {
         session_id: parseInt(session_id), 
         student_id: student.id, 
         full_name: student.full_name, 
-        method: 'qr', 
+        method: 'qr_scan', 
         attendance_id: result.rows[0].id,
         at: new Date().toISOString() 
       });

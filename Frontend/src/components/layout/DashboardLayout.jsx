@@ -158,7 +158,8 @@ export default function DashboardLayout({
     node.classList.add('content--enter');
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setProfileOpen(false);
-  }, [activeKey, title]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeKey]);
 
   useEffect(() => {
     if (!title) return undefined;

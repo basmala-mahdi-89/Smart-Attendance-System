@@ -105,17 +105,25 @@ export default function DoctorDashboard() {
     }
   };
 
+  const scannerRef = useRef(null);
+
   useEffect(() => {
     if (!showScanner) return;
     const timeout = setTimeout(() => {
       const scanner = new Html5QrcodeScanner(
         'doctor-reader',
-        { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 },
+        { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0, facingMode: 'environment' },
         false
       );
+      scannerRef.current = scanner;
       scanner.render(
         async (decodedText) => {
-          scanner.clear().catch((e) => console.error(e));
+          try {
+            await scanner.clear();
+          } catch (e) {
+            console.error(e);
+          }
+          scannerRef.current = null;
           setShowScanner(false);
           try {
             const res = await client.post(
@@ -137,6 +145,10 @@ export default function DoctorDashboard() {
     }, 200);
     return () => {
       clearTimeout(timeout);
+      if (scannerRef.current) {
+        scannerRef.current.clear().catch(() => {});
+        scannerRef.current = null;
+      }
     };
   }, [showScanner, activeSession]);
 
@@ -473,7 +485,7 @@ export default function DoctorDashboard() {
                   {qrToken ? (
                     <>
                       <div className="qr-frame">
-                        <QRCodeSVG value={qrToken} size={196} />
+                        <QRCodeSVG value={qrToken} size={250} />
                       </div>
                       <div className="qr-frame__foot">
                         <Icon name="refresh" size={13} /> {lang === 'ar' ? 'يتجدد كل 5 ثوانٍ' : 'Refreshing every 5 seconds'}

@@ -2182,10 +2182,12 @@ textarea {
   overflow: hidden;
   background: rgba(0, 0, 0, 0.22);
   border: 1px solid rgba(255, 255, 255, 0.1);
+  height: 360px;
 }
 #reader,
 #doctor-reader {
   width: 100% !important;
+  height: 100% !important;
   border: 0 !important;
   color: rgba(255, 255, 255, 0.75) !important;
   font-family: var(--font) !important;

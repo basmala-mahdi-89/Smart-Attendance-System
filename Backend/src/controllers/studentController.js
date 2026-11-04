@@ -109,7 +109,34 @@ exports.verifyOTP = async (req, res) => {
 exports.scanQR = async (req, res) => {
   try {
     const studentId = req.user.id;
-    const { qr_token, device_fingerprint } = req.body;
+    const { qr_token, qr_data, device_fingerprint } = req.body;
+
+    // ⚡ Personal QR flow (JSON) — allows scanning the personal QR from phone
+    if (qr_data) {
+      let payload;
+      try { payload = JSON.parse(qr_data); } catch (err) { return res.status(400).json({ message: 'Invalid QR format' }); }
+      if (payload.type !== 'student_personal' || !payload.student_id || !payload.otp) return res.status(400).json({ message: 'Invalid student QR' });
+      const scannedStudentId = payload.student_id;
+      const scannedStudentRes = await pool.query(`SELECT id, full_name, status, device_fingerprint, totp_secret FROM students WHERE id = $1 OR id::text = $2`, [scannedStudentId, scannedStudentId]);
+      if (scannedStudentRes.rows.length === 0) return res.status(404).json({ message: 'Student not found' });
+      const scannedStudent = scannedStudentRes.rows[0];
+      if (scannedStudent.status !== 'active') return res.status(403).json({ message: `Student account is ${scannedStudent.status}` });
+      const verified = speakeasy.totp.verify({ secret: scannedStudent.totp_secret, encoding: 'base32', token: payload.otp, window: 1 });
+      if (!verified) return res.status(400).json({ message: 'Invalid or expired QR code. Ask student to refresh.' });
+      const sessRes = await pool.query(`SELECT id, course_id, is_active FROM sessions WHERE id = (SELECT s.id FROM sessions s JOIN enrollments e ON e.course_id = s.course_id WHERE e.student_id = $1 ORDER BY s.start_time DESC LIMIT 1)`, [scannedStudentId]);
+      const sessionRow = sessRes.rows[0];
+      if (!sessionRow) return res.status(404).json({ message: 'No active session found' });
+      if (!sessionRow.is_active) return res.status(400).json({ message: 'Session is closed' });
+      const enrollCheck = await pool.query(`SELECT id FROM enrollments WHERE student_id = $1 AND course_id = $2`, [scannedStudent.id, sessionRow.course_id]);
+      if (enrollCheck.rows.length === 0) return res.status(403).json({ message: 'Student not enrolled in this course' });
+      const dupCheck = await pool.query(`SELECT id, method FROM attendance WHERE session_id = $1 AND student_id = $2`, [sessionRow.id, scannedStudent.id]);
+      if (dupCheck.rows.length > 0) return res.status(400).json({ message: '❌ Student already marked present' });
+      const result = await pool.query(`INSERT INTO attendance (session_id, student_id, method) VALUES ($1, $2, 'qr_scan') RETURNING *`, [sessionRow.id, scannedStudent.id]);
+      const io = req.app.get('io');
+      if (io) io.to(`session-${sessionRow.id}`).emit('attendance-update', { session_id: parseInt(sessionRow.id), student_id: scannedStudent.id, full_name: scannedStudent.full_name, method: 'qr_scan', at: new Date().toISOString() });
+      return res.json({ message: '✅ Attendance marked successfully', attendance: result.rows[0] });
+    }
+
     if (!qr_token) return res.status(400).json({ message: 'QR token is required' });
 
     let decoded;
