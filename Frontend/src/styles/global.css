@@ -3883,3 +3883,178 @@ html[dir='rtl'] .progress__fill { transform-origin: right; }
   html[dir='rtl'] .sidebar { transform: translateX(100%); }
   html[dir='rtl'] .sidebar.is-open { transform: none; }
 }
+
+/* ============================================================
+   MOBILE PASS - bigger auth window + true small-screen layout
+   ============================================================ */
+
+/* A roomier, more premium sign-in window */
+.auth__card {
+  max-width: 540px;
+  margin: 0;
+  padding: clamp(24px, 2.6vw, 38px);
+  border-radius: 30px;
+  box-shadow:
+    0 44px 96px -50px rgba(10, 17, 48, 0.55),
+    0 18px 44px -30px rgba(19, 77, 170, 0.45);
+}
+.auth__card--wide { max-width: 640px; }
+.auth__head { margin-bottom: 22px; }
+.auth__head h1 { font-size: clamp(1.8rem, 2.5vw, 2.12rem); }
+.auth__main { padding: 36px clamp(18px, 4vw, 56px); }
+.auth__trust { flex-wrap: wrap; row-gap: 6px; }
+
+@media (max-width: 1080px) {
+  .auth__main {
+    min-height: 100dvh;
+    padding: clamp(20px, 4vw, 40px) clamp(16px, 4vw, 44px) 42px;
+  }
+}
+
+/* Camera panel on the session-scan page */
+.scanner-shell { position: relative; }
+.scanner-idle {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  text-align: center;
+  border-radius: inherit;
+  color: rgba(255, 255, 255, 0.86);
+  background:
+    radial-gradient(420px 220px at 50% 0%, rgba(19, 77, 170, 0.35), transparent 72%),
+    #0e1840;
+}
+.scanner-idle__icon {
+  display: grid;
+  place-items: center;
+  width: 62px;
+  height: 62px;
+  margin-bottom: 4px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  animation: float 6s var(--ease) infinite;
+}
+.scanner-idle b { font-size: 1rem; letter-spacing: -0.01em; }
+.scanner-idle > span:last-child {
+  max-width: 280px;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.58);
+}
+.camera-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+.camera-actions .btn { flex: 1 1 160px; }
+.scan-card .scanner-shell.is-live {
+  box-shadow: 0 0 0 3px rgba(19, 77, 170, 0.12), 0 24px 46px -32px rgba(10, 17, 48, 0.7);
+}
+.scan-card .scanner-shell.is-live #reader video {
+  height: 100% !important;
+  object-fit: cover;
+}
+
+/* Mobile shell: let the topbar breathe instead of squeezing its actions */
+@media (max-width: 860px) {
+  .topbar {
+    height: auto;
+    min-height: var(--topbar-h);
+    padding: 10px 14px;
+    row-gap: 8px;
+    flex-wrap: wrap;
+  }
+  .topbar > div:first-of-type { flex: 1 1 auto; min-width: 0; }
+  .topbar__title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .topbar__spacer { display: none; }
+  .topbar__actions { flex-wrap: wrap; justify-content: flex-end; margin-left: auto; }
+  .content { padding: 16px 14px 52px; }
+  .modal { max-height: calc(100dvh - 32px); }
+}
+
+@media (max-width: 640px) {
+  .topbar__crumb { display: none; }
+  .topbar__title { max-width: 54vw; font-size: 0.95rem; }
+  .topbar__actions { width: 100%; gap: 6px; }
+  .topbar__actions > .btn { flex: 0 1 auto; min-width: 0; }
+  .topbar__actions .btn { min-height: 40px; padding-inline: 14px; }
+  .topbar__profile { margin-inline-start: auto; }
+
+  .page-head { gap: 12px; margin-bottom: 18px; }
+  .page-head__text h1 { font-size: 1.38rem; }
+  .page-head__text p { font-size: 0.86rem; }
+  .page-head__actions { gap: 8px; }
+  .page-head__actions .btn { min-height: 40px; }
+
+  .toolbar { width: 100%; gap: 8px; }
+  .toolbar .field { flex: 1 1 100%; min-width: 0; }
+  .toolbar .btn { flex: 1 1 auto; }
+
+  .table th { padding: 10px 12px; font-size: 0.64rem; }
+  .table td { padding: 12px; font-size: 0.82rem; }
+  .data-bar { padding: 14px; gap: 10px; }
+  .data-bar__actions { width: 100%; gap: 8px; }
+  .data-bar__actions .btn { flex: 1 1 auto; }
+
+  .tabs { overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { flex: 0 0 auto; }
+  .kpi-grid { gap: 10px; }
+  .stat { padding: 14px; }
+  .stat__value { font-size: 1.45rem; }
+
+  .center-page { padding-top: 0; }
+  .qr-card, .scan-card { max-width: 100%; padding: 18px 14px; border-radius: 22px; }
+  .qr-card__frame { padding: 12px; border-radius: 16px; }
+  .qr-card__frame svg { width: min(248px, 64vw); height: auto; }
+  .totp { padding: 14px; }
+  .totp__code { font-size: 1.45rem; }
+  .scanner-shell { height: min(58vh, 330px); }
+
+  .modal-backdrop { padding: 12px; }
+  .modal { border-radius: 18px; }
+  .modal__head { padding: 16px 16px 0; }
+  .modal__body { padding: 16px; gap: 12px; }
+  .modal__foot { padding: 14px 16px 18px; gap: 8px; flex-wrap: wrap; }
+  .modal__foot .btn { flex: 1 1 auto; }
+
+  .auth__main { padding: 16px 12px 34px; }
+  .auth__card { padding: 22px 18px; border-radius: 24px; }
+  .auth__head h1 { font-size: 1.72rem; }
+  .auth__head p { font-size: 0.88rem; }
+  .auth__lang { top: 12px; inset-inline-end: 12px; }
+}
+
+@media (max-width: 420px) {
+  .topbar__title { max-width: 50vw; font-size: 0.9rem; }
+  .content { padding: 14px 10px 46px; }
+  .qr-card, .scan-card { padding: 16px 12px; }
+  .camera-actions .btn { flex: 1 1 100%; }
+  .modal-backdrop { padding: 8px; }
+  .auth__card { padding: 20px 14px; }
+}
+
+/* Keep every shell child inside the viewport */
+.main, .content, .shell { min-width: 0; }
+img, video, canvas { max-width: 100%; }
+
+/* Mirror the profile card under RTL so it never leaves the screen */
+html[dir='rtl'] .profile-pop {
+  right: auto;
+  left: 0;
+  transform-origin: top left;
+}
+@media (max-width: 640px) {
+  html[dir='rtl'] .profile-pop { right: auto; left: -8px; }
+}
