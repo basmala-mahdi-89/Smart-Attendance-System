@@ -8,12 +8,14 @@ import Icon from '../components/ui/Icon';
 import { Select } from '../components/ui/Field';
 import { Badge, EmptyState, Loader, StatCard } from '../components/ui/Feedback';
 import { AnimatedNumber, ProgressBar } from '../components/ui/Motion';
+import { PointsLedger } from '../components/ui/Points';
 import { useLanguage } from '../context/LanguageContext';
 
 const TABS = [
   { key: 'dashboard', label: { en: 'Overview', ar: 'نظرة عامة' }, icon: 'home' },
   { key: 'courses', label: { en: 'My Courses', ar: 'مقرراتي' }, icon: 'book' },
   { key: 'attendance', label: { en: 'Attendance History', ar: 'سجل الحضور' }, icon: 'calendar-check' },
+  { key: 'points', label: { en: 'Bonus & Minus', ar: 'البونص والخصم' }, icon: 'award' },
   { key: 'warnings', label: { en: 'Warnings', ar: 'التحذيرات' }, icon: 'alert' },
 ];
 
@@ -63,6 +65,7 @@ export default function StudentDashboard() {
   const [courses, setCourses] = useState([]);
   const [attendance, setAttendance] = useState([]);
   const [warnings, setWarnings] = useState([]);
+  const [pointsData, setPointsData] = useState({ entries: [], totals: { bonus: 0, penalty: 0, net: 0 } });
   const [currentTerm, setCurrentTerm] = useState('1');
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -76,15 +79,17 @@ export default function StudentDashboard() {
 
   const loadData = async () => {
     try {
-      const [coursesRes, attendanceRes, warningsRes] = await Promise.all([
+      const [coursesRes, attendanceRes, warningsRes, pointsRes] = await Promise.all([
         client.get('/students/me/courses'),
         client.get('/students/me/attendance'),
         client.get('/students/me/warnings'),
+        client.get('/students/me/points'),
       ]);
       setCourses(coursesRes.data.courses);
       setCurrentTerm(coursesRes.data.current_term);
       setAttendance(attendanceRes.data);
       setWarnings(warningsRes.data);
+      setPointsData(pointsRes.data || { entries: [], totals: { bonus: 0, penalty: 0, net: 0 } });
     } catch (err) {
       console.error(err);
     } finally {
@@ -101,6 +106,21 @@ export default function StudentDashboard() {
     selectedCourseId === 'all'
       ? warnings
       : warnings.filter((w) => w.course_id === parseInt(selectedCourseId));
+
+  const filteredPoints =
+    selectedCourseId === 'all'
+      ? pointsData.entries || []
+      : (pointsData.entries || []).filter((p) => Number(p.course_id) === Number(selectedCourseId));
+
+  const pointsTotals = filteredPoints.reduce(
+    (acc, entry) => {
+      if (entry.type === 'bonus') acc.bonus += entry.points;
+      else acc.penalty += entry.points;
+      return acc;
+    },
+    { bonus: 0, penalty: 0 }
+  );
+  pointsTotals.net = pointsTotals.bonus - pointsTotals.penalty;
 
   const displayAttended = filteredCourses.reduce(
     (sum, c) => sum + parseInt(c.attended_sessions || 0),
@@ -211,6 +231,13 @@ export default function StudentDashboard() {
                   <AnimatedNumber value={displayWarningsCount} />
                 </strong>
               </div>
+              <div className="hero__stat">
+                <span>{lang === 'ar' ? 'صافي النقاط' : 'Net points'}</span>
+                <strong>
+                  {pointsTotals.net >= 0 ? '+' : '−'}
+                  <AnimatedNumber value={Math.abs(pointsTotals.net)} />
+                </strong>
+              </div>
             </div>
           </div>
           <AttendanceGauge value={attendanceRate} />
@@ -275,6 +302,17 @@ export default function StudentDashboard() {
               value={<AnimatedNumber value={displayWarningsCount} />}
               meta={displayWarningsCount === 0 ? (lang === 'ar' ? 'كل شيء مضبوط' : 'All clear') : (lang === 'ar' ? 'يحتاج انتباه' : 'Needs attention')}
               tone={displayWarningsCount === 0 ? 'olive' : 'danger'}
+            />
+            <StatCard
+              icon="award"
+              label={lang === 'ar' ? 'صافي البونص' : 'Net bonus'}
+              value={`${pointsTotals.net >= 0 ? '+' : '−'}${Math.abs(pointsTotals.net)}`}
+              meta={
+                lang === 'ar'
+                  ? `+${pointsTotals.bonus} بونص · −${pointsTotals.penalty} خصم`
+                  : `+${pointsTotals.bonus} bonus · −${pointsTotals.penalty} minus`
+              }
+              tone={pointsTotals.net >= 0 ? 'teal' : 'danger'}
             />
           </div>
 
@@ -436,6 +474,32 @@ export default function StudentDashboard() {
                 )}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'points' && (
+        <div className="card points-card" style={{ marginTop: 20 }}>
+          <div className="data-bar">
+            <div>
+              <h2>{lang === 'ar' ? 'البونص والخصم' : 'Bonus & minus'}</h2>
+              <p>
+                {lang === 'ar'
+                  ? 'كل النقاط التي منحها لك الدكتور أو المهندس، مع السبب والتاريخ.'
+                  : 'Every point awarded to you by a doctor or engineer, with reason and date.'}
+              </p>
+            </div>
+            <div className="data-bar__actions">
+              <Badge variant="success">+{pointsTotals.bonus}</Badge>
+              <Badge variant="danger">−{pointsTotals.penalty}</Badge>
+              <Badge variant="neutral">
+                {lang === 'ar' ? 'الصافي' : 'Net'} {pointsTotals.net >= 0 ? '+' : '−'}
+                {Math.abs(pointsTotals.net)}
+              </Badge>
+            </div>
+          </div>
+          <div className="card__body">
+            <PointsLedger entries={filteredPoints} lang={lang} />
           </div>
         </div>
       )}

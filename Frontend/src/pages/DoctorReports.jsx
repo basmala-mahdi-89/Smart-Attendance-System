@@ -8,6 +8,7 @@ import Icon from '../components/ui/Icon';
 import { Input, Select } from '../components/ui/Field';
 import { Badge, EmptyState, Loader, StatCard } from '../components/ui/Feedback';
 import { AnimatedNumber, ProgressBar } from '../components/ui/Motion';
+import { PointsLedger, PointsSummary } from '../components/ui/Points';
 import { useLanguage } from '../context/LanguageContext';
 
 export default function DoctorReports() {
@@ -19,6 +20,7 @@ export default function DoctorReports() {
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [points, setPoints] = useState(null);
 
   // Student selection + warning dispatch
   const [selectedStudents, setSelectedStudents] = useState([]);
@@ -39,11 +41,13 @@ export default function DoctorReports() {
   const loadReport = async (courseId) => {
     if (!courseId) {
       setReport(null);
+      setPoints(null);
       return;
     }
     setLoading(true);
     setSearchTerm('');
     setSelectedStudents([]);
+    setPoints(null);
     try {
       const { data } = await client.get(`/doctor/courses/${courseId}/report`);
       setReport(data);
@@ -51,6 +55,24 @@ export default function DoctorReports() {
       alert(lang === 'ar' ? 'فشل تحميل التقرير' : 'Failed to load report');
     } finally {
       setLoading(false);
+    }
+    try {
+      const { data } = await client.get(`/doctor/courses/${courseId}/points`);
+      setPoints(data);
+    } catch (err) {
+      console.error('points load error:', err);
+    }
+  };
+
+  const undoPoint = async (entry) => {
+    const label = lang === 'ar' ? 'حذف هذه النقاط من السجل؟' : 'Remove this point entry?';
+    if (!window.confirm(label)) return;
+    try {
+      await client.delete(`/doctor/points/${entry.id}`);
+      const { data } = await client.get(`/doctor/courses/${selectedCourse}/points`);
+      setPoints(data);
+    } catch (err) {
+      alert(err.response?.data?.message || (lang === 'ar' ? 'فشل حذف النقاط' : 'Failed to remove points'));
     }
   };
 
@@ -363,6 +385,38 @@ export default function DoctorReports() {
               </div>
             </div>
           </div>
+
+          {points && (
+            <div className="card points-card">
+              <div className="data-bar">
+                <div>
+                  <h2>{lang === 'ar' ? 'سجل البونص والخصم' : 'Bonus & minus ledger'}</h2>
+                  <p>
+                    {lang === 'ar'
+                      ? 'كل النقاط المسجّلة في هذا المقرر وأسماء الطلاب المستحقين لها.'
+                      : 'Every point recorded in this course and the students who received it.'}
+                  </p>
+                </div>
+                <div className="data-bar__actions">
+                  <Badge variant="success">+{points.totals?.bonus ?? 0}</Badge>
+                  <Badge variant="danger">−{points.totals?.penalty ?? 0}</Badge>
+                  <Badge variant="neutral">
+                    {lang === 'ar' ? 'الصافي' : 'Net'} {points.totals?.net >= 0 ? '+' : '−'}
+                    {Math.abs(points.totals?.net ?? 0)}
+                  </Badge>
+                </div>
+              </div>
+              <div className="card__body">
+                <PointsSummary rows={points.summary || []} totals={points.totals} lang={lang} />
+              </div>
+              <div className="card__body">
+                <h3 className="points-section-title">
+                  <Icon name="award" size={16} /> {lang === 'ar' ? 'آخر العمليات' : 'Recent entries'}
+                </h3>
+                <PointsLedger entries={points.entries || []} onUndo={undoPoint} lang={lang} />
+              </div>
+            </div>
+          )}
         </div>
       )}
     </DashboardLayout>

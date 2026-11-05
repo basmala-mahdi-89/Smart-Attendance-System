@@ -3,6 +3,7 @@ const router = express.Router();
 const doctorController = require('../controllers/doctorController');
 const reportsCtrl = require('../controllers/reportsController');
 const warnCtrl = require('../controllers/warningsController'); // ⚡ استدعاء الإنذارات
+const pointsCtrl = require('../controllers/pointsController'); // ➕ بونص / خصم الطلاب
 const { verifyToken } = require('../middleware/auth');
 const { allowRoles } = require('../middleware/roles');
 
@@ -33,6 +34,12 @@ router.delete('/sessions/:session_id/attendance/:attendance_id', doctorControlle
 router.post('/sessions/:session_id/manual-scan', doctorController.manualScan);
 router.post('/sessions/:session_id/manual-add', doctorController.manualAdd);
 router.post('/sessions/:session_id/scan-student-qr', doctorController.scanStudentPersonalQR);
+
+// ➕ Bonus / penalty points (doctor + engineer + head + dean)
+router.post('/sessions/:session_id/points', pointsCtrl.awardSessionPoints);
+router.get('/sessions/:session_id/points', pointsCtrl.getSessionPoints);
+router.get('/courses/:course_id/points', pointsCtrl.getCoursePoints);
+router.delete('/points/:point_id', pointsCtrl.deletePoint);
 
 // Reports
 router.get('/courses/:course_id/report', reportsCtrl.doctorCourseReport);

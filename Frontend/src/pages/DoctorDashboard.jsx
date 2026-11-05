@@ -11,6 +11,7 @@ import Icon from '../components/ui/Icon';
 import { Input, Select } from '../components/ui/Field';
 import { Alert, Badge, EmptyState, Loader, StatCard } from '../components/ui/Feedback';
 import { AnimatedNumber, ProgressBar } from '../components/ui/Motion';
+import { PointActions, PointsLedger, PointsModal } from '../components/ui/Points';
 import { useLanguage } from '../context/LanguageContext';
 
 const initials = (name = '') =>
@@ -58,6 +59,21 @@ export default function DoctorDashboard() {
   const [scanResult, setScanResult] = useState(null);
   const [shortId, setShortId] = useState('');
   const [manualResult, setManualResult] = useState(null);
+
+  // ➕ Bonus / minus points
+  const [sessionPoints, setSessionPoints] = useState([]);
+  const [pointTarget, setPointTarget] = useState(null);
+  const [pointBusy, setPointBusy] = useState(false);
+
+  const loadSessionPoints = async (sessionId) => {
+    if (!sessionId) return;
+    try {
+      const { data } = await client.get(`/doctor/sessions/${sessionId}/points`);
+      setSessionPoints(data.entries || []);
+    } catch (err) {
+      console.error('points error:', err);
+    }
+  };
 
   const startQrRefresh = (sessionId) => {
     const fetchQR = async () => {
@@ -177,6 +193,7 @@ export default function DoctorDashboard() {
           setActiveSession(sessionData.data.session);
           startQrRefresh(sessionData.data.session.id);
           loadAttendanceList(sessionData.data.session.id);
+          loadSessionPoints(sessionData.data.session.id);
           const socket = getSocket();
           if (socket) socket.emit('join-session', sessionData.data.session.id);
         }
@@ -212,9 +229,21 @@ export default function DoctorDashboard() {
         );
       }
     };
+    const handlePoints = (data) => {
+      if (data.action === 'awarded' && data.point) {
+        setSessionPoints((prev) => {
+          if (prev.some((item) => item.id === data.point.id)) return prev;
+          return [data.point, ...prev];
+        });
+      }
+      if (data.action === 'removed' && data.point_id) {
+        setSessionPoints((prev) => prev.filter((item) => item.id !== data.point_id));
+      }
+    };
     if (socket) {
       socket.on('attendance-update', handleUpdate);
       socket.on('attendance-removed', handleRemove);
+      socket.on('points-update', handlePoints);
     }
 
     return () => {
@@ -222,6 +251,7 @@ export default function DoctorDashboard() {
       if (socket) {
         socket.off('attendance-update', handleUpdate);
         socket.off('attendance-removed', handleRemove);
+        socket.off('points-update', handlePoints);
       }
       disconnectSocket();
       if (qrIntervalRef.current) clearInterval(qrIntervalRef.current);
@@ -236,9 +266,11 @@ export default function DoctorDashboard() {
       setLiveUpdates([]);
       setManualResult(null);
       setScanResult(null);
+      setSessionPoints([]);
       const socket = getSocket();
       if (socket) socket.emit('join-session', data.session.id);
       startQrRefresh(data.session.id);
+      loadSessionPoints(data.session.id);
       setActiveTab('dashboard');
     } catch (err) {
       notify(err.response?.data?.message || (lang === 'ar' ? 'فشل بدء الجلسة' : 'Failed to start session'));
@@ -258,6 +290,8 @@ export default function DoctorDashboard() {
       setManualResult(null);
       setScanResult(null);
       setAttendanceList([]);
+      setSessionPoints([]);
+      setPointTarget(null);
     } catch (err) {
       notify(lang === 'ar' ? 'فشل إنهاء الجلسة' : 'Failed to end session');
     }
@@ -278,6 +312,49 @@ export default function DoctorDashboard() {
         success: false,
         message: err.response?.data?.message || 'Failed to add manually',
       });
+    }
+  };
+
+  const awardPoints = async ({ points, reason }) => {
+    if (!activeSession || !pointTarget) return;
+    setPointBusy(true);
+    try {
+      const { data } = await client.post(`/doctor/sessions/${activeSession.id}/points`, {
+        student_id: pointTarget.student.student_id,
+        type: pointTarget.mode,
+        points,
+        reason,
+      });
+      notify(
+        pointTarget.mode === 'bonus'
+          ? lang === 'ar'
+            ? `تم منح ${points} بونص لـ ${pointTarget.student.full_name_ar || pointTarget.student.full_name}`
+            : `Bonus of ${points} added to ${pointTarget.student.full_name}`
+          : lang === 'ar'
+            ? `تم تسجيل خصم ${points} لـ ${pointTarget.student.full_name_ar || pointTarget.student.full_name}`
+            : `Minus of ${points} recorded for ${pointTarget.student.full_name}`
+      );
+      setSessionPoints((prev) => {
+        if (!data.point || prev.some((item) => item.id === data.point.id)) return prev;
+        return [data.point, ...prev];
+      });
+      setPointTarget(null);
+    } catch (err) {
+      notify(err.response?.data?.message || (lang === 'ar' ? 'فشل تسجيل النقاط' : 'Failed to save points'), 'error');
+    } finally {
+      setPointBusy(false);
+    }
+  };
+
+  const undoPoint = async (entry) => {
+    const label = lang === 'ar' ? 'حذف هذه النقاط من السجل؟' : 'Remove this point entry?';
+    if (!window.confirm(label)) return;
+    try {
+      await client.delete(`/doctor/points/${entry.id}`);
+      setSessionPoints((prev) => prev.filter((item) => item.id !== entry.id));
+      notify(lang === 'ar' ? 'تم حذف النقاط' : 'Point entry removed');
+    } catch (err) {
+      notify(err.response?.data?.message || (lang === 'ar' ? 'فشل حذف النقاط' : 'Failed to remove points'), 'error');
     }
   };
 
@@ -678,6 +755,7 @@ export default function DoctorDashboard() {
                       <th>{lang === 'ar' ? 'الطالب' : 'Student'}</th>
                       <th>{lang === 'ar' ? 'الطريقة' : 'Method'}</th>
                       <th>{lang === 'ar' ? 'تم الحضور' : 'Checked in'}</th>
+                      <th>{lang === 'ar' ? 'بونص / خصم' : 'Bonus / Minus'}</th>
                       <th style={{ width: 90 }}>{lang === 'ar' ? 'إجراء' : 'Action'}</th>
                     </tr>
                   </thead>
@@ -702,6 +780,12 @@ export default function DoctorDashboard() {
                           {a.created_at ? new Date(a.created_at).toLocaleTimeString() : '—'}
                         </td>
                         <td>
+                          <PointActions
+                            lang={lang}
+                            onAward={(mode) => setPointTarget({ student: a, mode })}
+                          />
+                        </td>
+                        <td>
                           <Button
                             variant="ghost"
                             size="sm"
@@ -714,6 +798,28 @@ export default function DoctorDashboard() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            </section>
+          )}
+
+          {activeSession && (
+            <section className="card points-card">
+              <div className="data-bar">
+                <div>
+                  <h2>{lang === 'ar' ? 'سجل البونص والخصم' : 'Bonus & minus ledger'}</h2>
+                  <p>
+                    {lang === 'ar'
+                      ? 'أسماء الطلاب الذين حصلوا على بونص أو خصم في هذه الجلسة.'
+                      : 'Students who received a bonus or a minus in this session.'}
+                  </p>
+                </div>
+                <div className="data-bar__actions">
+                  <Badge variant="success">+{sessionPoints.filter((p) => p.type === 'bonus').reduce((sum, p) => sum + p.points, 0)}</Badge>
+                  <Badge variant="danger">−{sessionPoints.filter((p) => p.type === 'penalty').reduce((sum, p) => sum + p.points, 0)}</Badge>
+                </div>
+              </div>
+              <div className="card__body">
+                <PointsLedger entries={sessionPoints} onUndo={undoPoint} lang={lang} />
               </div>
             </section>
           )}
@@ -902,6 +1008,19 @@ export default function DoctorDashboard() {
         </div>
       </div>
     )}
+    <PointsModal
+      open={!!pointTarget}
+      student={
+        pointTarget
+          ? { ...pointTarget.student, course_code: activeSession?.course_code }
+          : null
+      }
+      mode={pointTarget?.mode || 'bonus'}
+      lang={lang}
+      busy={pointBusy}
+      onClose={() => setPointTarget(null)}
+      onConfirm={awardPoints}
+    />
     </DashboardLayout>
     </>
   );

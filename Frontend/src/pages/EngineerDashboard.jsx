@@ -10,6 +10,7 @@ import Icon from '../components/ui/Icon';
 import { Select } from '../components/ui/Field';
 import { Alert, Badge, EmptyState, Loader, StatCard } from '../components/ui/Feedback';
 import { AnimatedNumber } from '../components/ui/Motion';
+import { PointActions, PointsLedger, PointsModal } from '../components/ui/Points';
 import { useLanguage } from '../context/LanguageContext';
 
 const initials = (name = '') =>
@@ -42,6 +43,21 @@ export default function EngineerDashboard() {
   const [shortId, setShortId] = useState('');
   const [manualResult, setManualResult] = useState(null);
 
+  // ➕ Bonus / minus points
+  const [sessionPoints, setSessionPoints] = useState([]);
+  const [pointTarget, setPointTarget] = useState(null);
+  const [pointBusy, setPointBusy] = useState(false);
+
+  const loadSessionPoints = async (sessionId) => {
+    if (!sessionId) return;
+    try {
+      const { data } = await client.get(`/doctor/sessions/${sessionId}/points`);
+      setSessionPoints(data.entries || []);
+    } catch (err) {
+      console.error('points error:', err);
+    }
+  };
+
   const startQrRefresh = (sessionId) => {
     const fetchQR = async () => {
       try {
@@ -71,6 +87,7 @@ export default function EngineerDashboard() {
         if (sessionData.session && mounted) {
           setActiveSession(sessionData.session);
           startQrRefresh(sessionData.session.id);
+          loadSessionPoints(sessionData.session.id);
           const socket = getSocket();
           if (socket) socket.emit('join-session', sessionData.session.id);
         }
@@ -86,14 +103,27 @@ export default function EngineerDashboard() {
     const handleUpdate = (data) => {
       setLiveUpdates((prev) => [data, ...prev].slice(0, 20));
     };
+    const handlePoints = (data) => {
+      if (data.action === 'awarded' && data.point) {
+        setSessionPoints((prev) => {
+          if (prev.some((item) => item.id === data.point.id)) return prev;
+          return [data.point, ...prev];
+        });
+      }
+      if (data.action === 'removed' && data.point_id) {
+        setSessionPoints((prev) => prev.filter((item) => item.id !== data.point_id));
+      }
+    };
     if (socket) {
       socket.on('attendance-update', handleUpdate);
+      socket.on('points-update', handlePoints);
     }
 
     return () => {
       mounted = false;
       if (socket) {
         socket.off('attendance-update', handleUpdate);
+        socket.off('points-update', handlePoints);
       }
       disconnectSocket();
       if (qrIntervalRef.current) clearInterval(qrIntervalRef.current);
@@ -115,6 +145,7 @@ export default function EngineerDashboard() {
             at: x.created_at,
           })).slice(0, 20)
         );
+        loadSessionPoints(activeSession.id);
       } catch (e) {
         /* silent */
       }
@@ -131,6 +162,8 @@ export default function EngineerDashboard() {
       startQrRefresh(data.session.id);
       setManualResult(null);
       setLiveUpdates([]);
+      setSessionPoints([]);
+      loadSessionPoints(data.session.id);
       setActiveTab('live');
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to start session');
@@ -147,6 +180,8 @@ export default function EngineerDashboard() {
       setActiveSession(null);
       setQrToken('');
       setManualResult(null);
+      setSessionPoints([]);
+      setPointTarget(null);
     } catch (err) {
       alert(lang === 'ar' ? 'فشل إنهاء الجلسة' : 'Failed to end session');
     }
@@ -166,6 +201,56 @@ export default function EngineerDashboard() {
         success: false,
         message: err.response?.data?.message || 'Failed to add manually',
       });
+    }
+  };
+
+  const awardPoints = async ({ points, reason }) => {
+    if (!activeSession || !pointTarget) return;
+    setPointBusy(true);
+    try {
+      const name = pointTarget.student.full_name_ar || pointTarget.student.full_name;
+      const { data } = await client.post(`/doctor/sessions/${activeSession.id}/points`, {
+        student_id: pointTarget.student.student_id,
+        type: pointTarget.mode,
+        points,
+        reason,
+      });
+      if (data.point) {
+        setSessionPoints((prev) => {
+          if (prev.some((item) => item.id === data.point.id)) return prev;
+          return [data.point, ...prev];
+        });
+      }
+      setManualResult({
+        success: true,
+        message:
+          pointTarget.mode === 'bonus'
+            ? lang === 'ar'
+              ? `تم منح ${points} بونص لـ ${name}`
+              : `Bonus of ${points} added to ${name}`
+            : lang === 'ar'
+              ? `تم تسجيل خصم ${points} لـ ${name}`
+              : `Minus of ${points} recorded for ${name}`,
+      });
+      setPointTarget(null);
+    } catch (err) {
+      setManualResult({
+        success: false,
+        message: err.response?.data?.message || (lang === 'ar' ? 'فشل تسجيل النقاط' : 'Failed to save points'),
+      });
+    } finally {
+      setPointBusy(false);
+    }
+  };
+
+  const undoPoint = async (entry) => {
+    const label = lang === 'ar' ? 'حذف هذه النقاط من السجل؟' : 'Remove this point entry?';
+    if (!window.confirm(label)) return;
+    try {
+      await client.delete(`/doctor/points/${entry.id}`);
+      setSessionPoints((prev) => prev.filter((item) => item.id !== entry.id));
+    } catch (err) {
+      alert(err.response?.data?.message || (lang === 'ar' ? 'فشل حذف النقاط' : 'Failed to remove points'));
     }
   };
 
@@ -354,19 +439,49 @@ export default function EngineerDashboard() {
                     ) : (
                       <div className="feed" style={{ marginTop: 12 }}>
                         {liveUpdates.map((u, i) => (
-                          <div key={`${u.student_id}-${i}`} className="feed__item">
+                          <div key={`${u.student_id}-${i}`} className="feed__item feed__item--points">
                             <span className="feed__avatar">{initials(lang === 'ar' && u.full_name_ar ? u.full_name_ar : u.full_name)}</span>
                             <div style={{ minWidth: 0 }}>
                               <b>{lang === 'ar' && u.full_name_ar ? u.full_name_ar : u.full_name}</b>
                               <span>{lang === 'ar' ? 'عبر' : 'via'} {u.method}</span>
                             </div>
                             <time>{new Date(u.at).toLocaleTimeString()}</time>
+                            <PointActions
+                              lang={lang}
+                              onAward={(mode) => setPointTarget({ student: u, mode })}
+                            />
                           </div>
                         ))}
                       </div>
                     )}
                   </div>
                 </div>
+              </div>
+            </section>
+          )}
+
+          {activeSession && (
+            <section className="card points-card">
+              <div className="data-bar">
+                <div>
+                  <h2>{lang === 'ar' ? 'سجل البونص والخصم' : 'Bonus & minus ledger'}</h2>
+                  <p>
+                    {lang === 'ar'
+                      ? 'أسماء الطلاب الذين حصلوا على بونص أو خصم في هذا القسم.'
+                      : 'Students who received a bonus or a minus in this section.'}
+                  </p>
+                </div>
+                <div className="data-bar__actions">
+                  <Badge variant="success">
+                    +{sessionPoints.filter((p) => p.type === 'bonus').reduce((sum, p) => sum + p.points, 0)}
+                  </Badge>
+                  <Badge variant="danger">
+                    −{sessionPoints.filter((p) => p.type === 'penalty').reduce((sum, p) => sum + p.points, 0)}
+                  </Badge>
+                </div>
+              </div>
+              <div className="card__body">
+                <PointsLedger entries={sessionPoints} onUndo={undoPoint} lang={lang} />
               </div>
             </section>
           )}
@@ -509,6 +624,19 @@ export default function EngineerDashboard() {
           </div>
         </div>
       )}
+      <PointsModal
+        open={!!pointTarget}
+        student={
+          pointTarget
+            ? { ...pointTarget.student, course_code: activeSession?.course_code }
+            : null
+        }
+        mode={pointTarget?.mode || 'bonus'}
+        lang={lang}
+        busy={pointBusy}
+        onClose={() => setPointTarget(null)}
+        onConfirm={awardPoints}
+      />
     </DashboardLayout>
   );
 }

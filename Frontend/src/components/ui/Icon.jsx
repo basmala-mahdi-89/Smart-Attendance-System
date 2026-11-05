@@ -193,6 +193,7 @@ const paths = {
   ),
   menu: <path d="M4 6h16M4 12h16M4 18h16" />,
   plus: <path d="M12 5v14M5 12h14" />,
+  minus: <path d="M5 12h14" />,
   search: (
     <>
       <circle cx="11" cy="11" r="7" />
