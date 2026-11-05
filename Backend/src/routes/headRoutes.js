@@ -26,6 +26,7 @@ router.delete('/courses/:course_id/staff/:assignment_id', headController.removeS
 // Students
 router.get('/students/pending', headController.getPendingStudents);
 router.get('/students', headController.getAllStudents);
+router.post('/students/pending/accept-all', headController.acceptAllPendingStudents);
 router.post('/students/:student_id/approve', headController.approveStudent);
 router.post('/students/:student_id/reject', headController.rejectStudent);
 

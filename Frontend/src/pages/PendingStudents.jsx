@@ -71,6 +71,21 @@ export default function PendingStudents() {
     }
   };
 
+  const acceptAll = async () => {
+    setActionLoading('all');
+    try {
+      const { data } = await client.post('/head/students/pending/accept-all');
+      const approvedIds = new Set((data.approved || []).map((a) => a.id));
+      const count = approvedIds.size;
+      setStudents((prev) => prev.filter((s) => !approvedIds.has(s.id)));
+      alert(lang === 'ar' ? `تم قبول ${count} طالباً` : `Accepted ${count} student(s) successfully`);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to accept all');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const nav = [
     { key: 'overview', label: 'Head Overview', icon: 'home', to: '/head', section: 'Department' },
     { key: 'pending', label: 'Pending Students', icon: 'user-plus', count: students.length },
@@ -116,6 +131,18 @@ export default function PendingStudents() {
           <p>{lang === 'ar' ? 'راجع حسابات الطلاب قبل أن يتمكنوا من تسجيل الدخول ومسح الحضور.' : 'Review student accounts before they can sign in and scan attendance.'}</p>
         </div>
         <div className="page-head__actions">
+          {students.length > 0 && (
+            <Button
+              variant="success"
+              size="sm"
+              icon="check"
+              onClick={acceptAll}
+              loading={actionLoading === 'all'}
+              disabled={actionLoading === 'all'}
+            >
+              {lang === 'ar' ? 'قبول الكل' : 'Accept All'}
+            </Button>
+          )}
           <Badge variant={students.length ? 'warning' : 'success'} dot>
             {students.length
               ? lang === 'ar'

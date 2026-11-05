@@ -227,6 +227,54 @@ exports.getPendingStudents = async (req, res) => {
 };
 
 // ============================
+// 14. Accept All Pending Students
+// ============================
+exports.acceptAllPendingStudents = async (req, res) => {
+  try {
+    const headId = req.user.id;
+    const majorRes = await pool.query(`SELECT id FROM majors WHERE head_staff_id = $1`, [headId]);
+    if (majorRes.rows.length === 0) return res.status(404).json({ message: 'No major assigned' });
+
+    const list = await pool.query(
+      `SELECT id, major_id, academic_year, full_name, email FROM students WHERE major_id = $1 AND status = 'pending' ORDER BY created_at DESC`,
+      [majorRes.rows[0].id]
+    );
+
+    const approved = [];
+    for (const s of list.rows) {
+      try {
+        const result = await pool.query(
+          `UPDATE students SET status = 'active' WHERE id = $1 AND status = 'pending' RETURNING id, full_name, email, status`,
+          [s.id]
+        );
+        if (result.rows.length > 0) {
+          const coursesRes = await pool.query(
+            `SELECT id FROM courses WHERE major_id = $1 AND academic_year = $2`,
+            [s.major_id, s.academic_year]
+          );
+          let enrolledCount = 0;
+          for (const c of coursesRes.rows) {
+            try {
+              await pool.query(`INSERT INTO enrollments (student_id, course_id) VALUES ($1, $2)`, [s.id, c.id]);
+              enrolledCount++;
+            } catch (e) { if (e.code !== '23505') throw e; }
+          }
+          try { await sendApprovalEmail(s.email, s.full_name); } catch (e) { console.error('Email error:', e.message); }
+          approved.push({ ...result.rows[0], enrolled_in_courses: enrolledCount });
+        }
+      } catch (err) {
+        console.error(`acceptAll error for student ${s.id}:`, err.message);
+      }
+    }
+
+    res.json({ message: `Approved ${approved.length} pending student(s)`, approved });
+  } catch (err) {
+    console.error('acceptAllPendingStudents error:', err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// ============================
 // 11. Get All Students
 // ============================
 exports.getAllStudents = async (req, res) => {
