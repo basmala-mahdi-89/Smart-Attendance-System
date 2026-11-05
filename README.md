@@ -11,7 +11,7 @@
 
 A full-stack **QR-based attendance management system** for universities, built with **React (Vite)**, **Express 5**, **Socket.IO**, and **PostgreSQL**. It supports two fraud-resistant attendance flows — dynamic **Session QR codes** (JWT, rotated every 5s) and **Personal QR codes** (TOTP, rotated every 30s) — plus live dashboards, analytics, and role-based access for Deans, Heads, Doctors, and Students.
 
-> 🌐 This README includes an [Arabic quick-start section](#مقدمة-سريعة-بالعربي) at the end.
+> 🌐 This README is fully documented in **English**.
 
 ## 📑 Table of Contents
 
@@ -26,7 +26,7 @@ A full-stack **QR-based attendance management system** for universities, built w
 9. [Security Notes](#-security-notes)
 10. [Troubleshooting](#-troubleshooting-from-real-debugging-sessions)
 11. [Author](#-author)
-12. [القسم بالعربي](#مقدمة-سريعة-بالعربي)
+12. [License](#-license)
 
 ---
 
@@ -55,7 +55,7 @@ A full-stack **QR-based attendance management system** for universities, built w
 ### Real-Time & UX
 - ⚡ **Socket.IO live updates** — the doctor's attendance list updates in **real time** during local/self-hosted runs.
 - 🔄 **Polling fallback (5s)** — on serverless hosts (e.g., Vercel) sockets are disabled and the app automatically polls attendance, so live behavior is preserved anywhere.
-- 📱 **Rear-camera QR scanning** (`facingMode: environment`) so phones scan reliably.
+- 📱 **Rear-camera QR scanning** (`facingMode: 'environment'`) so phones scan reliably.
 - 🖥️ **HTTPS in dev** (via `@vitejs/plugin-basic-ssl`) — because browsers require secure origins for camera access.
 - 🌍 **Arabic/English UI support** with a custom UI kit, error boundaries, and motion primitives.
 
@@ -72,10 +72,10 @@ A full-stack **QR-based attendance management system** for universities, built w
 ┌───────────────▼──────────────────────────────────────────────────▼──────────────┐
 │                        Backend (Express 5 + Socket.IO)                          │
 │  auth · dean · head · doctor · student · invitations routes                      │
-│  ⤷ Session QR  → JWT (type=attendance_qr, 5s rotation)                          │
-│  ⤷ Personal QR → JSON {type:'student_personal', otp} → TOTP verify              │
-│  ⤷ Attendance insert → method ∈ ('qr_scan','manual')  ✔ constraint-checked      │
-│  ⤷ Auto migrations on boot (runMigrations.js)                                   │
+│  ⚡ Session QR  → JWT (type=attendance_qr, 5s rotation)                          │
+│  ⚡ Personal QR → JSON {type:'student_personal', otp} → TOTP verify              │
+│  ⚡ Attendance insert → method ∈ ('qr_scan','manual')  ✔ constraint-checked      │
+│  ⚡ Auto migrations on boot (runMigrations.js)                                   │
 └───────────────┬─────────────────────────────────────────────────────────────────┘
                 │ SQL
 ┌───────────────▼─────────────────────────────────────────────────────────────────┐
@@ -307,43 +307,22 @@ Educational project — built as a university graduation system. All rights rese
 
 ---
 
-# مقدمة سريعة بالعربي
-
-## التشغيل المحلي
-
-```bash
-# 1) نفّذ التثبيت في المجلدين
-cd Backend && npm install
-cd ../Frontend && npm install
-
-# 2) اعمل ملف Backend/.env بالقيم بتاعتك ( زي القالب اللي فوق )
-# 3) شغّل الباك إند
-cd Backend && npm run dev          # بورت 5000 + الجداول بتتعمل أوتوماتيك
-
-# 4) شغّل الفرونت إند في ترمنال تاني
-cd Frontend && npm run dev         # بورت 5173 مع HTTPS للكاميرا
-```
-
-- من الموبايل (نفس الواي فاي): `https://192.168.1.10:5173`
-- انتبه: `EADDRINUSE` معناها إن السيرفر شغال بالفعل — قفله وابدأ مرة واحدة.
-
-## أهم 3 قواعد
-1. **الكود بتاع جلسة الدكتور** يتغير كل ~5 ثواني لوحده — ده طبيعي وأمان.
-2. **الـ QR الشخصي للطالب** يتغير كل ~30 ثانية (TOTP) — يمنع التمثيل والانتحال.
-3. على **Vercel** التحديث بيتجدد كل 5 ثواني (Polling) بدل اللحظي — لأن مزود الأكواد مش بتسمح بالـ WebSocket الدائم.
-
-## النشر على Vercel (مجاني)
-1. `vercel.com` → تسجيل بـ GitHub.
-2. **Storage → Neon Postgres (مجاني)** → احفظ `DATABASE_URL`.
-3. مشروع 1: مجلد جذر `Backend` + متغيرات `DATABASE_URL / JWT_SECRET / NODE_ENV=production`.
-4. من جهازك مرة واحدة: `$env:DATABASE_URL="…"; node src/runMigrations.js`
-5. مشروع 2: مجلد جذر `Frontend` + `VITE_API_URL = رابط-الباك/api` + `VITE_ENABLE_SOCKET=false`.
-6. افتح الرابط من الموبايل — HTTPS حقيقي والكاميرا تشتغل على طول 🎉
-
----
-
 ## 👩‍💻 Author
 
 **Basmala Mahdi** — graduation project.
 - GitHub: [@basmala-mahdi-89](https://github.com/basmala-mahdi-89)
 - Repo: [Smart-Attendance-System](https://github.com/basmala-mahdi-89/Smart-Attendance-System)
+
+---
+
+## 📦 Current Version State
+
+| Component | Status |
+|---|---|
+| Backend (`Backend/`) | ✅ Syntax-checked, migrations run, personal QR + session QR flows implemented |
+| Frontend (`Frontend/`) | ✅ Build passes (`vite build`), rear-camera scanner, TOTP personal QR, polling fallback |
+| Deployment readiness | ✅ `Backend/api/index.js` + `Backend/vercel.json` + `Frontend/vercel.json` (Vercel-ready) |
+| Real-time | ✅ Socket.IO when hosted with a real server; polling (5s) when serverless |
+| Documentation | ✅ Fully English (this README) |
+
+**Next planned milestone:** one-click production deployment on Vercel (Backend + Frontend + Neon Postgres) with end-to-end QR scanning verified from a phone.
