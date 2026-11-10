@@ -1298,7 +1298,7 @@ export default function HeadDashboard() {
       {showSessionAttendees && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#fff', overflow: 'auto', padding: 24 }} onClick={() => setShowSessionAttendees(false)}>
           <div style={{ maxWidth: 1200, margin: '0 auto' }} onClick={(e) => e.stopPropagation()}>
-            <h2>{lang === 'ar' ? `الحضور — الجلسة رقم ${selectedSession?.id}` : `Attendees — Session #${selectedSession?.id}`}</h2>
+            <h2>{lang === 'ar' ? `الحضور — ${selectedSession?.course_name || `الجلسة ${selectedSession?.id}`}` : `Attendees — ${selectedSession?.course_name || `Session ${selectedSession?.id}`}`}</h2>
             {sessionAttendees.length === 0 ? (
               <p className="muted">{lang === 'ar' ? 'لا يوجد حضور مسجل.' : 'No attendance recorded.'}</p>
             ) : (

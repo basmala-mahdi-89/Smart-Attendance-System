@@ -548,9 +548,13 @@ export default function DoctorDashboard() {
                   </span>
                   <div>
                     <h2>
-                      {lang === 'ar' ? `الجلسة رقم ${activeSession.id}` : `Session #${activeSession.id}`} · {activeSession.course_code}
+                      {lang === 'ar' ? (activeSession.course_name || `الجلسة ${activeSession.id}`) : (activeSession.course_name || `Session ${activeSession.id}`)}
                     </h2>
-                    <p>{lang === 'ar' ? `رمز QR يتجدد كل 5 ثوانٍ · ${attendanceList.length} حضور` : `QR rotates every 5 seconds · ${attendanceList.length} checked in`}</p>
+                    <p>
+                      {lang === 'ar'
+                        ? `رمز QR يتجدد كل 5 ثوانٍ · ${attendanceList.length} حضور`
+                        : `QR rotates every 5 seconds · ${attendanceList.length} checked in`}
+                    </p>
                   </div>
                 </div>
                 <Button variant="danger" size="sm" icon="stop" onClick={endSession}>
@@ -737,7 +741,7 @@ export default function DoctorDashboard() {
               <div className="data-bar">
                 <div>
                   <h2>{lang === 'ar' ? 'الطلاب الحاضرون' : 'Checked-in students'}</h2>
-                  <p>{lang === 'ar' ? `قائمة مباشرة للجلسة رقم ${activeSession.id}. أزل سجلاً إذا كان خطأً.` : `Live list for session #${activeSession.id}. Remove a record if it was a mistake.`}</p>
+                  <p>{lang === 'ar' ? `قائمة مباشرة لـ ${activeSession.course_name || `الجلسة ${activeSession.id}`}. أزل سجلاً إذا كان خطأً.` : `Live list for ${activeSession.course_name || `Session ${activeSession.id}`}. Remove a record if it was a mistake.`}</p>
                 </div>
                 <Badge variant="success">{attendanceList.length} {lang === 'ar' ? 'حاضر' : 'present'}</Badge>
               </div>
@@ -995,7 +999,7 @@ export default function DoctorDashboard() {
     {showAttendees && (
       <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#fff', overflow: 'auto', padding: 24 }} onClick={() => setShowAttendees(false)}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }} onClick={(e) => e.stopPropagation()}>
-          <h2>{lang === 'ar' ? `الحضور — الجلسة رقم ${selectedHistorySession?.id}` : `Attendees — Session #${selectedHistorySession?.id}`}</h2>
+          <h2>{lang === 'ar' ? `الحضور — ${selectedHistorySession?.course_name || `الجلسة ${selectedHistorySession?.id}`}` : `Attendees — ${selectedHistorySession?.course_name || `Session ${selectedHistorySession?.id}`}`}</h2>
           {attendees.length === 0 ? (
             <p className="muted">{lang === 'ar' ? 'لا يوجد حضور مسجل.' : 'No attendance recorded.'}</p>
           ) : (

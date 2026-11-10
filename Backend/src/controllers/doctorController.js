@@ -247,7 +247,9 @@ exports.startSession = async (req, res) => {
        VALUES ($1, $2, CURRENT_DATE, NOW(), TRUE, $3) RETURNING *`,
       [course_id, doctorId, sessionType]
     );
-    res.status(201).json({ message: 'Session started', session: result.rows[0] });
+    const newSessionId = result.rows[0].id;
+    const courseInfo = await pool.query(`SELECT id, course_code, course_name FROM courses WHERE id = $1`, [course_id]);
+    res.status(201).json({ message: 'Session started', session: { ...result.rows[0], course_code: courseInfo.rows[0]?.course_code, course_name: courseInfo.rows[0]?.course_name } });
   } catch (err) {
     console.error('startSession error:', err.message);
     res.status(500).json({ message: 'Server error' });
