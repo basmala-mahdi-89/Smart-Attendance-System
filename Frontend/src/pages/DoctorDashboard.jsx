@@ -398,7 +398,6 @@ export default function DoctorDashboard() {
   const nav = [
     { key: 'dashboard', label: 'Live Session', icon: 'activity', section: 'Teaching' },
     { key: 'courses', label: 'My Courses', icon: 'book', onClick: () => setActiveTab('courses') },
-    { key: 'history', label: 'Session History', icon: 'calendar', onClick: () => setActiveTab('history') },
     { key: 'reports', label: 'Attendance Reports', icon: 'chart', to: '/doctor/reports', section: 'Management' },
   ];
   if (isHeadMode) nav.push({ key: 'head', label: 'Head Management', icon: 'users', to: '/head' });
@@ -407,7 +406,6 @@ export default function DoctorDashboard() {
 
   nav[0].onClick = () => setActiveTab('dashboard');
   nav[1].onClick = () => setActiveTab('courses');
-  nav[2].onClick = () => setActiveTab('history');
 
   const toastEl = toast ? (
     <div style={{ position: 'fixed', bottom: 20, right: 20, zIndex: 9999, padding: '10px 16px', background: toast.type === 'success' ? '#16a34a' : '#dc2626', color: '#fff', borderRadius: 8 }}>
@@ -455,11 +453,6 @@ export default function DoctorDashboard() {
       onLogout={logout}
       actions={
         <>
-          {activeSession && (
-            <span className="chip chip--live">
-              <span className="dot-pulse" /> {lang === 'ar' ? 'مباشر' : 'Live'}
-            </span>
-          )}
           <Button variant="secondary" size="sm" icon="chart" onClick={() => navigate('/doctor/reports')}>
             {lang === 'ar' ? 'التقارير' : 'Reports'}
           </Button>
@@ -780,19 +773,19 @@ export default function DoctorDashboard() {
                           {a.created_at ? new Date(a.created_at).toLocaleTimeString() : '—'}
                         </td>
                         <td>
-                          <PointActions
-                            lang={lang}
-                            onAward={(mode) => setPointTarget({ student: a, mode })}
-                          />
-                        </td>
-                        <td>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            icon="trash"
-                            aria-label={`Remove attendance for ${lang === 'ar' && a.full_name_ar ? a.full_name_ar : a.full_name}`}
-                            onClick={() => removeAttendance(a.attendance_id)}
-                          />
+                          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                            <PointActions
+                              lang={lang}
+                              onAward={(mode) => setPointTarget({ student: a, mode })}
+                            />
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              icon="trash"
+                              aria-label={`Remove attendance for ${lang === 'ar' && a.full_name_ar ? a.full_name_ar : a.full_name}`}
+                              onClick={() => removeAttendance(a.attendance_id)}
+                            />
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -877,7 +870,7 @@ export default function DoctorDashboard() {
         </div>
       )}
 
-      {activeTab === 'history' && (
+      {((activeTab === 'dashboard') || (activeTab === 'history')) && (
         <div className="card">
           <div className="data-bar">
             <div>
