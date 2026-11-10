@@ -23,6 +23,7 @@ router.post('/sessions', doctorController.startSession);
 router.get('/sessions/course/:course_id/active', doctorController.getActiveSession);
 router.get('/active-session', doctorController.getCurrentActiveSession);
 router.post('/sessions/:session_id/end', doctorController.endSession);
+router.delete('/sessions/:session_id', doctorController.deleteSession);
 
 // QR
 router.get('/sessions/:session_id/qr', doctorController.generateQR);

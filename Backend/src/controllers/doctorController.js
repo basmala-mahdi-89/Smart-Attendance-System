@@ -337,6 +337,20 @@ exports.endSession = async (req, res) => {
   }
 };
 
+exports.deleteSession = async (req, res) => {
+  try {
+    const doctorId = req.user.id;
+    const { session_id } = req.params;
+    const sessCheck = await pool.query(`SELECT id, course_id FROM sessions WHERE id = $1 AND created_by = $2`, [session_id, doctorId]);
+    if (sessCheck.rows.length === 0) return res.status(404).json({ message: 'Session not found' });
+    const result = await pool.query(`DELETE FROM sessions WHERE id = $1 RETURNING *`, [session_id]);
+    res.json({ message: 'Session deleted', session: result.rows[0] });
+  } catch (err) {
+    console.error('deleteSession error:', err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 exports.manualScan = async (req, res) => {
   try {
     const doctorId = req.user.id;

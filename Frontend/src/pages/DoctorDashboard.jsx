@@ -946,9 +946,27 @@ export default function DoctorDashboard() {
                         </div>
                       </td>
                       <td>
-                        <Button variant="soft" size="sm" icon="users" onClick={() => openAttendees(s)}>
-                          {lang === 'ar' ? 'عرض' : 'View'}
-                        </Button>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                          <Button variant="soft" size="sm" icon="users" onClick={() => openAttendees(s)}>
+                            {lang === 'ar' ? 'عرض' : 'View'}
+                          </Button>
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            icon="trash"
+                            onClick={async () => {
+                              try {
+                                const { data } = await client.delete(`/doctor/sessions/${s.id}`);
+                                setSessionHistory((prev) => prev.filter((x) => x.id !== s.id));
+                                notify(data.message || (lang === 'ar' ? 'تم حذف الجلسة' : 'Session deleted'), 'success');
+                              } catch (err) {
+                                notify(err.response?.data?.message || (lang === 'ar' ? 'فشل حذف الجلسة' : 'Failed to delete session'), 'error');
+                              }
+                            }}
+                          >
+                            {lang === 'ar' ? 'حذف' : 'Delete'}
+                          </Button>
+                        </div>
                       </td>
                       <td>
                         <Badge variant={s.is_active ? 'success' : 'neutral'} dot>
