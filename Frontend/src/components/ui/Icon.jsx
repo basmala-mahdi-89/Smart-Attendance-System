@@ -12,6 +12,12 @@ const paths = {
       <path d="M22 10v6" />
     </>
   ),
+  'hard-hat': (
+    <>
+      <path d="M3.5 15V8.5a8.5 8.5 0 0 1 17 0V15H3.5z" />
+      <path d="M2.8 15.5h18.4" />
+    </>
+  ),
   shield: <path d="M12 22s8-3.5 8-10V5l-8-3-8 3v7c0 6.5 8 10 8 10Z" />,
   'shield-check': (
     <>

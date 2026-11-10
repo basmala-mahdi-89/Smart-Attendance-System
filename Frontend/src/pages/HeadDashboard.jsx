@@ -640,6 +640,37 @@ export default function HeadDashboard() {
               </Button>
             </div>
           </div>
+
+          <div className="kpi-grid stagger" style={{ marginBottom: 16 }}>
+            <StatCard
+              icon="book"
+              label={lang === 'ar' ? 'المقررات المطابقة' : 'Matching courses'}
+              value={<AnimatedNumber value={filteredCourses.length} />}
+              meta={lang === 'ar' ? 'في نطاق الفلاتر الحالية' : 'Within current filters'}
+              tone="blue"
+            />
+            <StatCard
+              icon="users"
+              label={lang === 'ar' ? 'الطلاب المسجلون' : 'Enrolled students'}
+              value={<AnimatedNumber value={filteredCourses.reduce((sum, c) => sum + (c.students || 0), 0)} />}
+              meta={lang === 'ar' ? 'مجموع المسجلين' : 'Total across courses'}
+              tone="olive"
+            />
+            <StatCard
+              icon="graduate-cap"
+              label={lang === 'ar' ? 'الدكاترة المكلفون' : 'Assigned doctors'}
+              value={<AnimatedNumber value={filteredCourses.filter((c) => c.staff?.some((s) => s.role_in_course === 'doctor')).length} />}
+              meta={lang === 'ar' ? 'كليّات عليها دكتور' : 'Courses with a doctor'}
+              tone="navy"
+            />
+            <StatCard
+              icon="hard-hat"
+              label={lang === 'ar' ? 'المهندسون المكلفون' : 'Assigned engineers'}
+              value={<AnimatedNumber value={filteredCourses.filter((c) => (c.staff?.filter((s) => s.role_in_course === 'engineer').length || 0) > 0).length} />}
+              meta={lang === 'ar' ? 'كليّات عليها مهندسون' : 'Courses with engineers'}
+              tone="teal"
+            />
+          </div>
           <div className="table-wrap">
             <table className="table">
               <thead>
