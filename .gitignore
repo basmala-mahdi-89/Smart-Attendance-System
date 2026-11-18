@@ -147,3 +147,6 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# OpenCode local config (contains Vercel MCP token)
+opencode.json
