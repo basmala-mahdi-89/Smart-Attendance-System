@@ -154,6 +154,11 @@ export default function AuthLayout({ children, wide = false }) {
             ))}
           </div>
         </div>
+
+        <footer className="auth__compact-rights">
+          © {new Date().getFullYear()} Smart Attendance · {lang === 'ar' ? 'جميع الحقوق محفوظة' : 'All rights reserved'} ·{' '}
+          <strong>Juliana.89</strong> 🎈
+        </footer>
       </main>
     </div>
   );

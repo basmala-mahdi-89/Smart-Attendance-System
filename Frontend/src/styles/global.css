@@ -808,6 +808,9 @@ textarea {
   color: rgba(255, 255, 255, 0.82);
   font-weight: 700;
 }
+.auth__compact-rights {
+  display: none;
+}
 
 /* Global footer (dashboards) */
 .app-footer {
@@ -2783,7 +2786,19 @@ textarea {
   .auth { grid-template-columns: 1fr; }
   .auth__brand { display: none; }
   .auth__mobile-logo { display: block; }
-  .auth__main { min-height: 100vh; align-items: flex-start; padding-top: 34px; }
+  .auth__main { min-height: 100vh; align-items: flex-start; padding-top: 34px; flex-direction: column; }
+  .auth__compact-rights {
+    display: block;
+    margin-top: 20px;
+    font-size: 0.76rem;
+    line-height: 1.6;
+    color: var(--muted);
+    text-align: center;
+  }
+  .auth__compact-rights strong {
+    color: var(--navy-900);
+    font-weight: 700;
+  }
   .grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .grid-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
