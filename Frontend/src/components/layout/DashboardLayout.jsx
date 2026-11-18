@@ -482,10 +482,11 @@ export default function DashboardLayout({
           {children}
 
           <footer className="app-footer">
-            <span>© {new Date().getFullYear()} Smart Attendance</span>
-            <span className="app-footer__dot" aria-hidden="true">·</span>
-            <span>{ar ? 'جميع الحقوق محفوظة' : 'All rights reserved'}</span>
-            <span className="app-footer__brand">Juliana.89 🎈</span>
+            <span>
+              © {new Date().getFullYear()} Smart Attendance ·{' '}
+              {ar ? 'جميع الحقوق محفوظة' : 'All rights reserved'} ·{' '}
+              <strong className="app-footer__brand">Juliana.89</strong> 🎈
+            </span>
           </footer>
         </main>
       </div>
