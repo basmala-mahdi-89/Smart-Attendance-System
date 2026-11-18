@@ -139,12 +139,40 @@ exports.createCourse = async (req, res) => {
 exports.updateCourse = async (req, res) => {
   try {
     const { course_id } = req.params;
-    const { course_code, course_name, academic_year, term } = req.body;
-    
+    const {
+      course_code,
+      course_name,
+      academic_year,
+      term,
+      min_attendance_percentage,
+      max_absence_percentage,
+    } = req.body;
+
+    // Partial update: only the fields that were provided are changed.
     const result = await pool.query(
-      `UPDATE courses SET course_code = $1, course_name = $2, academic_year = $3, term = $4 WHERE id = $5 RETURNING *`,
-      [course_code, course_name, academic_year, term || '1', course_id]
+      `UPDATE courses SET
+         course_code = COALESCE($1, course_code),
+         course_name = COALESCE($2, course_name),
+         academic_year = COALESCE($3, academic_year),
+         term = COALESCE($4, term),
+         min_attendance_percentage = COALESCE($5, min_attendance_percentage),
+         max_absence_percentage = COALESCE($6, max_absence_percentage)
+       WHERE id = $7 RETURNING *`,
+      [
+        course_code ?? null,
+        course_name ?? null,
+        academic_year ?? null,
+        term ?? null,
+        min_attendance_percentage ?? null,
+        max_absence_percentage ?? null,
+        course_id,
+      ]
     );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+
     res.json({ message: 'Course updated', course: result.rows[0] });
   } catch (err) {
     console.error('updateCourse error:', err.message);
