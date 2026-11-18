@@ -480,6 +480,13 @@ export default function DashboardLayout({
 
         <main className="content" id="main-content" tabIndex={-1} ref={contentRef}>
           {children}
+
+          <footer className="app-footer">
+            <span>© {new Date().getFullYear()} Smart Attendance</span>
+            <span className="app-footer__dot" aria-hidden="true">·</span>
+            <span>{ar ? 'جميع الحقوق محفوظة' : 'All rights reserved'}</span>
+            <span className="app-footer__brand">Juliana.89 🎈</span>
+          </footer>
         </main>
       </div>
     </div>

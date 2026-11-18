@@ -119,7 +119,10 @@ export default function AuthLayout({ children, wide = false }) {
           <span>
             <Icon name="shield-check" size={15} /> Encrypted & device-verified
           </span>
-          <span>© {new Date().getFullYear()} Smart Attendance</span>
+          <span className="auth__rights">
+            © {new Date().getFullYear()} Smart Attendance · {lang === 'ar' ? 'جميع الحقوق محفوظة' : 'All rights reserved'} ·{' '}
+            <strong>Juliana.89</strong> 🎈
+          </span>
         </div>
       </aside>
 
