@@ -11,6 +11,7 @@
 ![Last commit](https://img.shields.io/github/last-commit/basmala-mahdi-89/Smart-Attendance-System?style=flat-square)
 ![Repo size](https://img.shields.io/github/repo-size/basmala-mahdi-89/Smart-Attendance-System?style=flat-square)
 ![Stars](https://img.shields.io/github/stars/basmala-mahdi-89/Smart-Attendance-System?style=flat-square)
+[![Live API](https://img.shields.io/badge/Live_API-online-2EA043?style=flat-square&logo=vercel&logoColor=white)](https://smart-attendance-backend-sepia.vercel.app/)
 
 A full-stack **QR-based attendance management system** for universities, built with **React (Vite)**, **Express 5**, **Socket.IO**, and **PostgreSQL**. It supports two fraud-resistant attendance flows — dynamic **Session QR codes** (JWT, rotated every 5s) and **Personal QR codes** (TOTP, rotated every 30s) — plus live dashboards, analytics, and role-based access for Deans, Heads, Doctors, and Students.
 
