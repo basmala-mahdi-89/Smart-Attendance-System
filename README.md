@@ -8,10 +8,23 @@
 ![Socket.IO](https://img.shields.io/badge/Socket.IO-4-010101?logo=socketdotio&logoColor=white)
 ![Vercel Ready](https://img.shields.io/badge/Vercel-Ready-black?logo=vercel&logoColor=white)
 ![Migrations](https://img.shields.io/badge/Migrations-Auto%20on%20Boot-blue)
+![Last commit](https://img.shields.io/github/last-commit/basmala-mahdi-89/Smart-Attendance-System?style=flat-square)
+![Repo size](https://img.shields.io/github/repo-size/basmala-mahdi-89/Smart-Attendance-System?style=flat-square)
+![Stars](https://img.shields.io/github/stars/basmala-mahdi-89/Smart-Attendance-System?style=flat-square)
 
 A full-stack **QR-based attendance management system** for universities, built with **React (Vite)**, **Express 5**, **Socket.IO**, and **PostgreSQL**. It supports two fraud-resistant attendance flows — dynamic **Session QR codes** (JWT, rotated every 5s) and **Personal QR codes** (TOTP, rotated every 30s) — plus live dashboards, analytics, and role-based access for Deans, Heads, Doctors, and Students.
 
 > 🌐 This README is fully documented in **English**.
+
+## 🎯 Project Highlights
+
+| Challenge | How it is solved |
+|---|---|
+| **Proving a student is physically present** | Two independent flows: a session QR signed as a short-lived JWT, and a personal TOTP code verified server-side |
+| **Stopping QR screenshots & sharing** | Codes expire in 5s / 30s; duplicates are rejected per session; device fingerprints are compared |
+| **Live updates on any host** | Socket.IO when a persistent server exists, automatic 5s polling when deployed serverless |
+| **Five different audiences** | Dean, Head, Doctor, Student and Engineer dashboards with role-scoped API guards |
+| **Deploying without a DevOps team** | Numbered SQL migrations run on boot, plus ready-made Vercel and single-service configurations |
 
 ## 📑 Table of Contents
 
@@ -309,8 +322,10 @@ Educational project — built as a university graduation system. All rights rese
 
 ## 👩‍💻 Author
 
-**Basmala Mahdi** — graduation project.
+**Basmala Mahdi** — Full-Stack Developer
 - GitHub: [@basmala-mahdi-89](https://github.com/basmala-mahdi-89)
+- LinkedIn: [basmala-mahdi](https://www.linkedin.com/in/basmala-mahdi/)
+- Email: [basmala.mahdi.59@gmail.com](mailto:basmala.mahdi.59@gmail.com)
 - Repo: [Smart-Attendance-System](https://github.com/basmala-mahdi-89/Smart-Attendance-System)
 
 ---
@@ -326,3 +341,13 @@ Educational project — built as a university graduation system. All rights rese
 | Documentation | ✅ Fully English (this README) |
 
 **Next planned milestone:** one-click production deployment on Vercel (Backend + Frontend + Neon Postgres) with end-to-end QR scanning verified from a phone.
+
+## 🗺️ Roadmap
+
+- [x] Dual attendance flows (session QR + personal TOTP QR)
+- [x] Role-based dashboards and audit logging
+- [x] Automatic migrations on boot
+- [x] Serverless + single-service deployment paths
+- [ ] One-click Vercel deployment with a verified end-to-end phone test
+- [ ] Automated API tests (auth, scanning, reports)
+- [ ] Push notifications for attendance warnings
