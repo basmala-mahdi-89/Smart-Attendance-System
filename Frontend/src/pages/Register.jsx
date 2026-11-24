@@ -234,7 +234,7 @@ export default function Register() {
                         : 'Pick your department from the list.'
               }
             >
-              {majorsLoading && <option value="">{lang === 'ar' ? 'جارٍ التحميل…' : 'Loading…'}</option>}
+              {majorsLoading && !majors.length && <option value="">{lang === 'ar' ? 'جارٍ التحميل…' : 'Loading…'}</option>}
               {!majorsLoading && !majors.length && (
                 <option value="">{lang === 'ar' ? 'لا توجد تخصصات' : 'No majors available'}</option>
               )}
