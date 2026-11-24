@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { register } from '../api/students';
+import { register, getMajors } from '../api/students';
 import AuthLayout from '../components/layout/AuthLayout';
 import Button from '../components/ui/Button';
 import { Input, PasswordInput, Select } from '../components/ui/Field';
@@ -33,6 +33,51 @@ export default function Register() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [majors, setMajors] = useState([]);
+  const [majorsLoading, setMajorsLoading] = useState(true);
+  const [majorsError, setMajorsError] = useState('');
+
+  // Load majors by name every time the page opens, so any dean change
+  // (add / rename / delete) shows up immediately.
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadMajors = async () => {
+      setMajorsLoading(true);
+      setMajorsError('');
+      try {
+        const list = await getMajors();
+        if (cancelled) return;
+        setMajors(list);
+        setFormData((prev) => {
+          if (!list.length) return { ...prev, major_id: '' };
+          if (list.some((m) => String(m.id) === String(prev.major_id))) return prev;
+          return { ...prev, major_id: String(list[0].id) };
+        });
+      } catch (err) {
+        if (!cancelled) {
+          setMajorsError(
+            err.response?.data?.message ||
+              (lang === 'ar' ? 'تعذّر تحميل التخصصات' : 'Could not load majors')
+          );
+        }
+      } finally {
+        if (!cancelled) setMajorsLoading(false);
+      }
+    };
+
+    loadMajors();
+    // Refresh when the student comes back to the tab (a dean may have changed a major meanwhile).
+    const onFocus = () => loadMajors();
+    window.addEventListener('focus', onFocus);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener('focus', onFocus);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
 
   const score = passwordScore(formData.password);
   const mismatch =
@@ -50,6 +95,11 @@ export default function Register() {
 
     if (formData.password.length < 8) {
       setError(lang === 'ar' ? 'كلمة المرور يجب أن تكون 8 أحرف على الأقل' : 'Password must be at least 8 characters');
+      return;
+    }
+
+    if (!formData.major_id) {
+      setError(lang === 'ar' ? 'اختر التخصص أولاً' : 'Please choose your major');
       return;
     }
 
@@ -161,17 +211,39 @@ export default function Register() {
               <option value="3">Year 3</option>
               <option value="4">Year 4</option>
             </Select>
-            <Input
-              label={lang === 'ar' ? 'معرف التخصص' : 'Major ID'}
+            <Select
+              label={lang === 'ar' ? 'التخصص' : 'Major'}
               icon="building"
-              type="number"
-              min="1"
-              placeholder={lang === 'ar' ? 'مثال: 3' : 'e.g. 3'}
-              hint={lang === 'ar' ? 'اسأل القسم عن معرف التخصص الخاص بك.' : 'Ask your department for your Major ID.'}
               value={formData.major_id}
               onChange={set('major_id')}
+              disabled={majorsLoading || !majors.length}
               required
-            />
+              hint={
+                majorsError
+                  ? majorsError
+                  : majorsLoading
+                    ? lang === 'ar'
+                      ? 'جارٍ تحميل التخصصات…'
+                      : 'Loading majors…'
+                    : !majors.length
+                      ? lang === 'ar'
+                        ? 'لا توجد تخصصات متاحة بعد — تواصل مع العميد.'
+                        : 'No majors available yet — contact your dean.'
+                      : lang === 'ar'
+                        ? 'اختر تخصصك من القائمة.'
+                        : 'Pick your department from the list.'
+              }
+            >
+              {majorsLoading && <option value="">{lang === 'ar' ? 'جارٍ التحميل…' : 'Loading…'}</option>}
+              {!majorsLoading && !majors.length && (
+                <option value="">{lang === 'ar' ? 'لا توجد تخصصات' : 'No majors available'}</option>
+              )}
+              {majors.map((major) => (
+                <option key={major.id} value={major.id}>
+                  {major.name}
+                </option>
+              ))}
+            </Select>
           </div>
         </div>
 

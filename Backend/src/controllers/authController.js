@@ -288,6 +288,21 @@ exports.login = async (req, res) => {
 };
 
 // ============================
+// Public list of majors (used by student registration)
+// ============================
+exports.getPublicMajors = async (req, res) => {
+  try {
+    const result = await pool.query(`SELECT id, name FROM majors ORDER BY name ASC`);
+    // Never cache: the dean may add, rename or delete a major at any time.
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.json({ majors: result.rows });
+  } catch (err) {
+    console.error('Public majors error:', err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// ============================
 // Get current user (me)
 // ============================
 exports.me = async (req, res) => {

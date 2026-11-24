@@ -16,9 +16,19 @@ const transporter = nodemailer.createTransport({
 
 exports.register = async (req, res) => {
   try {
-    const { national_id, full_name, full_name_ar, email, phone, academic_year, major_id, password } = req.body;
-    
-    if (!national_id || !full_name || !email || !phone || !academic_year || !major_id || !password) {
+    const {
+      national_id,
+      full_name,
+      full_name_ar,
+      email,
+      phone,
+      academic_year,
+      major_id,
+      major_name,
+      password,
+    } = req.body;
+
+    if (!national_id || !full_name || !email || !phone || !academic_year || (!major_id && !major_name) || !password) {
       return res.status(400).json({ message: 'All fields are required' });
     }
     if (!validateEgyptianNationalID(national_id)) {
@@ -34,8 +44,18 @@ exports.register = async (req, res) => {
     const dup = await pool.query(`SELECT id FROM students WHERE national_id = $1 OR email = $2`, [national_id, email]);
     if (dup.rows.length > 0) return res.status(400).json({ message: 'National ID or Email already exists' });
 
-    const majorRes = await pool.query(`SELECT id FROM majors WHERE id = $1`, [major_id]);
-    if (majorRes.rows.length === 0) return res.status(404).json({ message: 'Major not found' });
+    // Accept either a major id or a major name; always resolve to the current row
+    // so renamed/deleted majors are handled correctly.
+    const majorRes = major_id
+      ? await pool.query(`SELECT id FROM majors WHERE id = $1`, [major_id])
+      : await pool.query(`SELECT id FROM majors WHERE LOWER(TRIM(name)) = LOWER(TRIM($1))`, [major_name]);
+
+    if (majorRes.rows.length === 0) {
+      return res
+        .status(404)
+        .json({ message: major_id ? 'Major not found' : `No major named "${major_name}"` });
+    }
+    const resolvedMajorId = majorRes.rows[0].id;
 
     const password_hash = await bcrypt.hash(password, 10);
     const verifyToken = crypto.randomBytes(32).toString('hex');
@@ -43,7 +63,7 @@ exports.register = async (req, res) => {
     const result = await pool.query(
       `INSERT INTO students (national_id, full_name, full_name_ar, email, phone, academic_year, major_id, password_hash, personal_qr)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id, full_name, full_name_ar, email, status`,
-      [national_id, full_name, full_name_ar || null, email, phone, academic_year, major_id, password_hash, verifyToken]
+      [national_id, full_name, full_name_ar || null, email, phone, academic_year, resolvedMajorId, password_hash, verifyToken]
     );
 
     const verifyUrl = `${process.env.FRONTEND_URL}/verify-email/${verifyToken}`;

@@ -8,6 +8,16 @@ export const register = async (studentData) => {
   return data;
 };
 
+// Public list of majors shown on the registration form.
+// Fetched fresh every time so dean add/rename/delete is reflected immediately.
+export const getMajors = async () => {
+  const { data } = await client.get('/auth/majors', {
+    params: { _t: Date.now() },
+    headers: { 'Cache-Control': 'no-cache' },
+  });
+  return data.majors || [];
+};
+
 export const verifyEmail = async (token) => {
   const { data } = await client.get(`/students/verify-email/${token}`);
   return data;
