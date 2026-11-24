@@ -44,6 +44,17 @@ export default function DoctorDashboard() {
 
   const [historySearch, setHistorySearch] = useState('');
   const [historyFilterCourse, setHistoryFilterCourse] = useState('all');
+  const historyRef = useRef(null);
+
+  // Open the session history of a specific course (from "My Courses").
+  const openCourseHistory = (course) => {
+    setHistoryFilterCourse(String(course.id));
+    setHistorySearch('');
+    setActiveTab('courses');
+    setTimeout(() => {
+      historyRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 60);
+  };
 
   const [attendees, setAttendees] = useState([]);
   const [showAttendees, setShowAttendees] = useState(false);
@@ -842,6 +853,7 @@ export default function DoctorDashboard() {
                   <th>{lang === 'ar' ? 'الطلاب' : 'Students'}</th>
                   <th>{lang === 'ar' ? 'المهندسون' : 'Engineers'}</th>
                   <th>{lang === 'ar' ? 'دورك' : 'Your role'}</th>
+                  <th>{lang === 'ar' ? 'سجل الجلسات' : 'Session history'}</th>
                 </tr>
               </thead>
               <tbody>
@@ -859,11 +871,16 @@ export default function DoctorDashboard() {
                       <Badge variant="blue">{c.role_in_course}</Badge>
                       {c.is_primary && <Badge variant="success" className="badge--dot">{lang === 'ar' ? 'رئيسي' : 'Primary'}</Badge>}
                     </td>
+                    <td>
+                      <Button variant="soft" size="sm" icon="clock" onClick={() => openCourseHistory(c)}>
+                        {lang === 'ar' ? 'سجل الجلسات' : 'Session history'}
+                      </Button>
+                    </td>
                   </tr>
                 ))}
                 {courses.length === 0 && (
                   <tr>
-                    <td colSpan="6">
+                    <td colSpan="7">
                       <EmptyState icon="book" title={lang === 'ar' ? 'لا توجد مقررات مخصصة بعد' : 'No courses assigned yet'} />
                     </td>
                   </tr>
@@ -874,12 +891,12 @@ export default function DoctorDashboard() {
         </div>
       )}
 
-      {((activeTab === 'dashboard') || (activeTab === 'history')) && (
-        <div className="card">
+      {activeTab === 'courses' && (
+        <div className="card session-history-card" ref={historyRef}>
           <div className="data-bar">
             <div>
               <h2>{lang === 'ar' ? 'سجل الجلسات' : 'Session history'}</h2>
-              <p>{lang === 'ar' ? 'كل جلسة فتحتها، مع إجمالي الحضور.' : 'Every session you opened, with attendance totals.'}</p>
+              <p>{lang === 'ar' ? 'كل جلسة فتحتها، مع إجمالي الحضور. اختر مقرراً من جدول مقرراتي لعرض جلساته.' : 'Every session you opened, with attendance totals. Pick a course above to view its sessions.'}</p>
             </div>
             <Badge variant="blue">{filteredSessionHistory.length} {lang === 'ar' ? 'جلسة' : 'session(s)'}</Badge>
             <select
@@ -893,6 +910,11 @@ export default function DoctorDashboard() {
                 <option key={c.id} value={c.id}>{c.course_code}</option>
               ))}
             </select>
+            {historyFilterCourse !== 'all' && (
+              <Button variant="ghost" size="sm" icon="x" onClick={() => setHistoryFilterCourse('all')}>
+                {lang === 'ar' ? 'عرض الكل' : 'Show all'}
+              </Button>
+            )}
             <input
               className="input"
               placeholder={lang === 'ar' ? 'ابحث في الجلسات…' : 'Search sessions...'}
