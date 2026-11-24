@@ -44,16 +44,24 @@ export default function DoctorDashboard() {
 
   const [historySearch, setHistorySearch] = useState('');
   const [historyFilterCourse, setHistoryFilterCourse] = useState('all');
+  const [showCourseHistory, setShowCourseHistory] = useState(false);
   const historyRef = useRef(null);
 
-  // Open the session history of a specific course (from "My Courses").
+  // Show the session history table for a specific course (from "My Courses").
   const openCourseHistory = (course) => {
     setHistoryFilterCourse(String(course.id));
     setHistorySearch('');
+    setShowCourseHistory(true);
     setActiveTab('courses');
     setTimeout(() => {
       historyRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 60);
+  };
+
+  const closeCourseHistory = () => {
+    setShowCourseHistory(false);
+    setHistoryFilterCourse('all');
+    setHistorySearch('');
   };
 
   const [attendees, setAttendees] = useState([]);
@@ -891,13 +899,22 @@ export default function DoctorDashboard() {
         </div>
       )}
 
-      {activeTab === 'courses' && (
+      {activeTab === 'courses' && showCourseHistory && (
         <div className="card session-history-card" ref={historyRef}>
           <div className="data-bar">
             <div>
               <h2>{lang === 'ar' ? 'سجل الجلسات' : 'Session history'}</h2>
-              <p>{lang === 'ar' ? 'كل جلسة فتحتها، مع إجمالي الحضور. اختر مقرراً من جدول مقرراتي لعرض جلساته.' : 'Every session you opened, with attendance totals. Pick a course above to view its sessions.'}</p>
+              <p>
+                {historyFilterCourse === 'all'
+                  ? (lang === 'ar' ? 'كل جلسات مقرراتك' : 'Sessions across all your courses')
+                  : (lang === 'ar'
+                      ? `جلسات مقرر ${courses.find((c) => String(c.id) === historyFilterCourse)?.course_code || ''}`
+                      : `Sessions for ${courses.find((c) => String(c.id) === historyFilterCourse)?.course_code || 'selected course'}`)}
+              </p>
             </div>
+            <Button variant="ghost" size="sm" icon="x" onClick={closeCourseHistory}>
+              {lang === 'ar' ? 'إغلاق' : 'Close'}
+            </Button>
             <Badge variant="blue">{filteredSessionHistory.length} {lang === 'ar' ? 'جلسة' : 'session(s)'}</Badge>
             <select
               className="input"
