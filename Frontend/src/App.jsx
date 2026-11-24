@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
+import { ThemeProvider } from './context/ThemeContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
@@ -21,8 +22,9 @@ import StudentScan from './pages/StudentScan';
 
 function App() {
   return (
-    <AuthProvider>
-      <LanguageProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <LanguageProvider>
         <BrowserRouter>
           <ErrorBoundary>
             <Routes>
@@ -89,7 +91,8 @@ function App() {
           </ErrorBoundary>
         </BrowserRouter>
       </LanguageProvider>
-    </AuthProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Logo from '../ui/Logo';
 import Icon from '../ui/Icon';
 import { useLanguage } from '../../context/LanguageContext';
+import { useTheme } from '../../context/ThemeContext';
 
 export const ROLE_LABELS = {
   en: {
@@ -117,6 +118,7 @@ export default function DashboardLayout({
 }) {
   const navigate = useNavigate();
   const { lang, toggle } = useLanguage();
+  const { isDark, toggle: toggleTheme } = useTheme();
   const contentRef = useRef(null);
   const profileRef = useRef(null);
   const t = (value, fallback = value) =>
@@ -445,6 +447,32 @@ export default function DashboardLayout({
           <div className="topbar__spacer" />
           <div className="topbar__actions">
             {actions}
+            <button
+              type="button"
+              className="btn btn--icon btn--ghost theme-toggle"
+              onClick={toggleTheme}
+              title={
+                ar
+                  ? isDark
+                    ? 'التبديل إلى الوضع الفاتح'
+                    : 'التبديل إلى الوضع الداكن'
+                  : isDark
+                    ? 'Switch to light mode'
+                    : 'Switch to dark mode'
+              }
+              aria-label={
+                ar
+                  ? isDark
+                    ? 'التبديل إلى الوضع الفاتح'
+                    : 'التبديل إلى الوضع الداكن'
+                  : isDark
+                    ? 'Switch to light mode'
+                    : 'Switch to dark mode'
+              }
+              aria-pressed={isDark}
+            >
+              <Icon name={isDark ? 'sun' : 'moon'} size={18} />
+            </button>
             <button
               type="button"
               className="btn btn--secondary btn--sm"

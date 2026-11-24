@@ -3,6 +3,7 @@ import Logo from '../ui/Logo';
 import Icon from '../ui/Icon';
 import { AnimatedNumber } from '../ui/Motion';
 import { useLanguage } from '../../context/LanguageContext';
+import { useTheme } from '../../context/ThemeContext';
 
 const points = [
   { icon: 'qr', text: { en: 'Dynamic QR codes that refresh every 5 seconds', ar: 'رموز QR ديناميكية تتجدد كل 5 ثوانٍ' } },
@@ -19,6 +20,7 @@ const trust = [
 export default function AuthLayout({ children, wide = false }) {
   const cardRef = useRef(null);
   const { lang, toggle } = useLanguage();
+  const { isDark, toggle: toggleTheme } = useTheme();
 
   const handlePointer = (event) => {
     const card = cardRef.current;
@@ -127,15 +129,43 @@ export default function AuthLayout({ children, wide = false }) {
       </aside>
 
       <main className="auth__main">
-        <button
-          type="button"
-          className="auth__lang"
-          onClick={toggle}
-          aria-label={lang === 'en' ? 'Switch to Arabic' : 'Switch to English'}
-        >
-          <Icon name="globe" size={15} />
-          {lang === 'en' ? 'العربية' : 'English'}
-        </button>
+        <div className="auth__tools">
+          <button
+            type="button"
+            className="auth__tool"
+            onClick={toggleTheme}
+            aria-label={
+              isDark
+                ? lang === 'ar'
+                  ? 'التبديل إلى الوضع الفاتح'
+                  : 'Switch to light mode'
+                : lang === 'ar'
+                  ? 'التبديل إلى الوضع الداكن'
+                  : 'Switch to dark mode'
+            }
+            title={
+              isDark
+                ? lang === 'ar'
+                  ? 'التبديل إلى الوضع الفاتح'
+                  : 'Switch to light mode'
+                : lang === 'ar'
+                  ? 'التبديل إلى الوضع الداكن'
+                  : 'Switch to dark mode'
+            }
+            aria-pressed={isDark}
+          >
+            <Icon name={isDark ? 'sun' : 'moon'} size={16} />
+          </button>
+          <button
+            type="button"
+            className="auth__lang"
+            onClick={toggle}
+            aria-label={lang === 'en' ? 'Switch to Arabic' : 'Switch to English'}
+          >
+            <Icon name="globe" size={15} />
+            {lang === 'en' ? 'العربية' : 'English'}
+          </button>
+        </div>
         <div
           className={`auth__card ${wide ? 'auth__card--wide' : ''}`.trim()}
           ref={cardRef}

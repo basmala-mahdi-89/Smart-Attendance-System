@@ -38,6 +38,13 @@
   --muted: #66708a;
   --line: #e4e9f2;
   --line-strong: #d2dae8;
+  --line-2: #e8eef7;
+
+  /* Surfaces */
+  --surface: #ffffff;
+  --surface-soft: #f8fafd;
+  --surface-muted: #f1f5fb;
+  --surface-hover: #f6f9ff;
 
   /* Semantic */
   --success: #2e7d5b;
@@ -3658,6 +3665,47 @@ a:focus-visible {
   box-shadow: var(--shadow);
 }
 
+/* Theme + language controls share one floating cluster */
+.auth__tools {
+  position: fixed;
+  top: 18px;
+  inset-inline-end: 18px;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.auth__tools .auth__lang {
+  position: static;
+  top: auto;
+  inset-inline-end: auto;
+  z-index: auto;
+}
+.auth__tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid rgba(127, 146, 179, 0.35);
+  background: rgba(255, 255, 255, 0.9);
+  color: #16233f;
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: transform 0.2s var(--ease-out), box-shadow 0.2s var(--ease), background 0.2s;
+}
+.auth__tool:hover {
+  transform: translateY(-1px);
+  background: #fff;
+  box-shadow: var(--shadow);
+}
+@media (max-width: 640px) {
+  .auth__tools { top: 12px; inset-inline-end: 12px; }
+}
+
 .role-hint { animation: hintIn 0.35s var(--ease-out) both; }
 @keyframes hintIn {
   from { opacity: 0; transform: translateY(6px); }
@@ -4430,4 +4478,187 @@ html[dir='rtl'] .feed__item--points .point-actions { margin-left: 0; margin-righ
   .points-row__avatar { width: 32px; height: 32px; font-size: 0.66rem; }
   .points-summary__card { padding: 9px 11px; }
 }
+
+/* ============================================================
+   DARK THEME
+   Applied by ThemeContext through data-theme="dark" on <html>.
+   ============================================================ */
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  /* Core neutrals */
+  --paper: #0b1020;
+  --white: #131b30;
+  --ink: #eef3ff;
+  --text: #e7edfb;
+  --text-soft: #b8c4dc;
+  --muted: #8c9bb9;
+
+  /* Surfaces */
+  --surface: #131b30;
+  --surface-soft: #182238;
+  --surface-muted: #1e2a44;
+  --surface-hover: #1c2842;
+
+  /* Lines */
+  --line: #253149;
+  --line-strong: #33415f;
+  --line-2: #253149;
+
+  /* Accent tones used as text on dark surfaces */
+  --navy-800: #a9c3ef;
+  --steel-deep: #9fb3d1;
+
+  /* Tinted fills */
+  --ice-soft: rgba(28, 95, 196, 0.18);
+  --success-soft: rgba(46, 125, 91, 0.2);
+  --warning-soft: rgba(169, 108, 20, 0.22);
+  --danger-soft: rgba(180, 35, 43, 0.22);
+  --info-soft: rgba(33, 99, 132, 0.24);
+
+  /* Elevation */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.45);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow: 0 14px 38px -18px rgba(0, 0, 0, 0.75), 0 2px 6px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 32px 80px -32px rgba(0, 0, 0, 0.85);
+  --shadow-brand: 0 14px 30px -12px rgba(19, 77, 170, 0.7);
+}
+
+[data-theme='dark'] body { background: var(--paper); }
+[data-theme='dark'] a { color: #7fb0ff; }
+[data-theme='dark'] a:hover { color: #a8c8ff; }
+
+/* ---------- Surfaces that were hardcoded white ---------- */
+[data-theme='dark'] .input,
+[data-theme='dark'] .select,
+[data-theme='dark'] .textarea,
+[data-theme='dark'] .tabs,
+[data-theme='dark'] .modal,
+[data-theme='dark'] .stat,
+[data-theme='dark'] .chip,
+[data-theme='dark'] .course-card,
+[data-theme='dark'] .qr-card,
+[data-theme='dark'] .scan-card,
+[data-theme='dark'] .form-card,
+[data-theme='dark'] .crash__card,
+[data-theme='dark'] .role-chip,
+[data-theme='dark'] .profile-pop,
+[data-theme='dark'] .points-row__undo,
+[data-theme='dark'] .points-quick__btn,
+[data-theme='dark'] .topbar__actions .select,
+[data-theme='dark'] .topbar__actions .input,
+[data-theme='dark'] .auth__trust span {
+  background: var(--surface);
+}
+
+[data-theme='dark'] .table th,
+[data-theme='dark'] .table thead th,
+[data-theme='dark'] .feed__item--light,
+[data-theme='dark'] .feed__empty--light,
+[data-theme='dark'] .profile-pop__foot,
+[data-theme='dark'] .points-row,
+[data-theme='dark'] .points-empty,
+[data-theme='dark'] .points-summary__card,
+[data-theme='dark'] .points-modal__student,
+[data-theme='dark'] .crash__card code {
+  background: var(--surface-soft);
+  background-image: none;
+}
+
+[data-theme='dark'] .table tbody tr:hover,
+[data-theme='dark'] .profile-row:hover,
+[data-theme='dark'] .feed__item:hover {
+  background: var(--surface-hover);
+}
+
+[data-theme='dark'] .modal__close { background: var(--surface-muted); }
+[data-theme='dark'] .profile-pop__close { background: rgba(255, 255, 255, 0.08); }
+[data-theme='dark'] .row-selected { background: rgba(28, 95, 196, 0.22) !important; }
+[data-theme='dark'] .main { background: var(--paper); }
+[data-theme='dark'] .topbar {
+  background: rgba(11, 16, 32, 0.82);
+  border-bottom-color: rgba(37, 49, 73, 0.9);
+}
+[data-theme='dark'] .content > .toolbar,
+[data-theme='dark'] .content > .stack > .toolbar {
+  background: rgba(19, 27, 48, 0.72);
+}
+[data-theme='dark'] .modal-backdrop { background: rgba(3, 6, 15, 0.72); }
+
+/* ---------- Buttons ---------- */
+[data-theme='dark'] .btn--secondary {
+  --btn-bg: #1a2340;
+  --btn-fg: var(--text);
+  --btn-bg-hover: #223052;
+  --btn-bd: var(--line-strong);
+}
+[data-theme='dark'] .btn--ghost {
+  --btn-fg: var(--text-soft);
+  --btn-bg-hover: rgba(255, 255, 255, 0.08);
+}
+[data-theme='dark'] .theme-toggle:hover { color: var(--navy-800); }
+
+/* ---------- Brand fills that must stay dark ---------- */
+[data-theme='dark'] .tab.is-active,
+[data-theme='dark'] .skip-link,
+[data-theme='dark'] .stat--navy .stat__icon {
+  background: #1d3278;
+  color: #fff;
+}
+[data-theme='dark'] .stat__icon { color: #8db6ff; }
+
+/* ---------- Badges and status chips ---------- */
+[data-theme='dark'] .badge--blue { background: rgba(28, 95, 196, 0.22); color: #9dc2ff; }
+[data-theme='dark'] .badge--steel { background: rgba(99, 128, 170, 0.2); color: #b8c9e3; }
+[data-theme='dark'] .badge--success { color: #7fe0b6; }
+[data-theme='dark'] .badge--warning { color: #f0c179; }
+[data-theme='dark'] .badge--danger { color: #ff9ba1; }
+[data-theme='dark'] .badge--neutral { background: var(--surface-muted); color: var(--text-soft); }
+[data-theme='dark'] .chip--live {
+  color: #7fe0b6;
+  border-color: rgba(46, 125, 91, 0.45);
+}
+
+/* ---------- Auth screens ---------- */
+[data-theme='dark'] .auth__card {
+  background:
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    linear-gradient(120deg, rgba(28, 95, 196, 0.6), rgba(135, 175, 198, 0.45), rgba(33, 99, 132, 0.5)) border-box;
+}
+[data-theme='dark'] .auth__lang,
+[data-theme='dark'] .auth__tool {
+  background: rgba(19, 27, 48, 0.92);
+  color: var(--text);
+  border-color: rgba(140, 155, 185, 0.35);
+}
+[data-theme='dark'] .auth__lang:hover,
+[data-theme='dark'] .auth__tool:hover { background: var(--surface); }
+[data-theme='dark'] .auth__compact-rights strong { color: var(--navy-800); }
+
+/* ---------- Cards, gradients and tinted panels ---------- */
+[data-theme='dark'] .card:hover { border-color: var(--line-strong); }
+[data-theme='dark'] .invite-card { background: linear-gradient(160deg, #182238, #131b30); }
+[data-theme='dark'] .data-bar { background: linear-gradient(180deg, var(--surface), var(--surface-soft)); }
+[data-theme='dark'] .warning-card { background: linear-gradient(180deg, var(--surface), rgba(180, 35, 43, 0.12)); }
+[data-theme='dark'] .role-hint { background: linear-gradient(180deg, var(--surface), var(--surface-soft)); }
+[data-theme='dark'] .role-chip.is-active {
+  background: linear-gradient(180deg, #1b2642, #223052);
+  color: var(--text);
+  border-color: rgba(28, 95, 196, 0.5);
+}
+[data-theme='dark'] .role-chip:hover { color: var(--navy-800); }
+
+/* ---------- Alerts and warning copy ---------- */
+[data-theme='dark'] .alert--error { border-color: rgba(180, 35, 43, 0.45); color: #ffb3b8; }
+[data-theme='dark'] .alert--success { border-color: rgba(46, 125, 91, 0.45); color: #8fe0bd; }
+[data-theme='dark'] .alert--info { border-color: rgba(33, 99, 132, 0.5); color: #9fd0e2; }
+[data-theme='dark'] .alert--warning { border-color: rgba(169, 108, 20, 0.5); color: #f2c987; }
+[data-theme='dark'] .warning-card h3 { color: #ffb3b8; }
+[data-theme='dark'] .warning-card p { color: #d8a2a6; }
+[data-theme='dark'] .warning-card time { color: #b58a8e; }
+[data-theme='dark'] .points-modal__hint--penalty { color: #ffb3b8; }
+
+/* ---------- QR frames stay white so codes remain scannable ---------- */
+[data-theme='dark'] .qr-frame,
+[data-theme='dark'] .qr-card__frame { background: #fff; }
 

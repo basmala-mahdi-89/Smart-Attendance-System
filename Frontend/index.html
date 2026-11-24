@@ -5,6 +5,22 @@
     <link rel="icon" type="image/png" href="/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#162661" />
+    <script>
+      // Apply the saved theme before first paint to avoid a light flash.
+      (function () {
+        try {
+          var stored = localStorage.getItem('theme');
+          var dark = stored
+            ? stored === 'dark'
+            : window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var theme = dark ? 'dark' : 'light';
+          document.documentElement.dataset.theme = theme;
+          document.documentElement.style.colorScheme = theme;
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) meta.setAttribute('content', dark ? '#0b1020' : '#162661');
+        } catch (e) {}
+      })();
+    </script>
     <meta
       name="description"
       content="Smart Attendance — a secure, real-time university attendance platform with dynamic QR codes, offline check-in and analytics."
