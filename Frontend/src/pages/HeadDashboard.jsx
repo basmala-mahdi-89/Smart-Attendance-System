@@ -682,7 +682,7 @@ export default function HeadDashboard() {
                           {courseDoctor ? (
                             <div className="row" style={{ gap: 8 }}>
                               <div className="person__meta">
-                                <b>د. {lang === 'ar' && courseDoctor.full_name_ar ? courseDoctor.full_name_ar : courseDoctor.full_name}</b>
+                                <b>{lang === 'ar' ? 'د.' : 'Dr.'} {lang === 'ar' && courseDoctor.full_name_ar ? courseDoctor.full_name_ar : courseDoctor.full_name}</b>
                                 {courseDoctor.is_primary && <span>{lang === 'ar' ? 'رئيسي' : 'Primary'}</span>}
                               </div>
                               <Button
@@ -703,7 +703,7 @@ export default function HeadDashboard() {
                           <div className="stack" style={{ gap: 6 }}>
                             {courseEngineers.map((eng) => (
                               <div key={eng.assignment_id} className="row" style={{ gap: 8 }}>
-                                <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>م. {lang === 'ar' && eng.full_name_ar ? eng.full_name_ar : eng.full_name}</span>
+                                <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{lang === 'ar' ? 'م.' : 'Eng.'} {lang === 'ar' && eng.full_name_ar ? eng.full_name_ar : eng.full_name}</span>
                                 <Button
                                   variant="ghost"
                                   size="sm"
@@ -1246,12 +1246,12 @@ export default function HeadDashboard() {
                   {assignForm.role_in_course === 'doctor'
                     ? doctors.map((d) => (
                         <option key={d.id} value={d.id}>
-                          د. {lang === 'ar' && d.full_name_ar ? d.full_name_ar : d.full_name}
+                          {lang === 'ar' ? 'د.' : 'Dr.'} {lang === 'ar' && d.full_name_ar ? d.full_name_ar : d.full_name}
                         </option>
                       ))
                     : engineers.map((en) => (
                         <option key={en.id} value={en.id}>
-                          م. {lang === 'ar' && en.full_name_ar ? en.full_name_ar : en.full_name}
+                          {lang === 'ar' ? 'م.' : 'Eng.'} {lang === 'ar' && en.full_name_ar ? en.full_name_ar : en.full_name}
                         </option>
                       ))}
                 </Select>
