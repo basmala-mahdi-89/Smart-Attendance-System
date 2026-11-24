@@ -123,7 +123,7 @@ export default function AuthLayout({ children, wide = false }) {
           </span>
           <span className="auth__rights">
             © {new Date().getFullYear()} Smart Attendance · {lang === 'ar' ? 'جميع الحقوق محفوظة' : 'All rights reserved'} ·{' '}
-            <strong>Juliana.89</strong> 🎈
+            <strong>89</strong>🎈
           </span>
         </div>
       </aside>
@@ -187,7 +187,7 @@ export default function AuthLayout({ children, wide = false }) {
 
         <footer className="auth__compact-rights">
           © {new Date().getFullYear()} Smart Attendance · {lang === 'ar' ? 'جميع الحقوق محفوظة' : 'All rights reserved'} ·{' '}
-          <strong>Juliana.89</strong> 🎈
+          <strong>89</strong>🎈
         </footer>
       </main>
     </div>

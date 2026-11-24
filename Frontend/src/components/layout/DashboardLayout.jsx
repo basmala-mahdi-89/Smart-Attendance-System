@@ -513,7 +513,7 @@ export default function DashboardLayout({
             <span>
               © {new Date().getFullYear()} Smart Attendance ·{' '}
               {ar ? 'جميع الحقوق محفوظة' : 'All rights reserved'} ·{' '}
-              <strong className="app-footer__brand">Juliana.89</strong> 🎈
+              <strong className="app-footer__brand">89</strong>🎈
             </span>
           </footer>
         </main>
