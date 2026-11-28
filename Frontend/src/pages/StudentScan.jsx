@@ -70,7 +70,8 @@ export default function StudentScan() {
           () => {}
         );
         if (disposed) {
-          scanner.stop().catch(() => {});
+          try { await scanner.stop(); } catch { /* not running */ }
+          try { scanner.clear(); } catch { /* ignore */ }
         }
       } catch (err) {
         if (disposed) return;
@@ -91,12 +92,11 @@ export default function StudentScan() {
       const instance = scannerRef.current;
       scannerRef.current = null;
       if (!instance) return;
-      instance
-        .stop()
-        .then(() => instance.clear())
-        .catch(() => {
-          instance.clear().catch(() => {});
-        });
+      // html5-qrcode can throw synchronously when nothing is running — guard everything.
+      (async () => {
+        try { await instance.stop(); } catch { /* not running */ }
+        try { instance.clear(); } catch { /* ignore */ }
+      })();
     };
   }, [cameraOn]);
 

@@ -21,7 +21,7 @@ export default function LiveClock({ showSeconds = true, showDate = true, classNa
   const time = new Intl.DateTimeFormat(locale, {
     hour: '2-digit',
     minute: '2-digit',
-    hour12: false,
+    hour12: true, // 12-hour clock (1, 2, … not 13, 14 …)
     ...(showSeconds ? { second: '2-digit' } : {}),
   }).format(now);
 

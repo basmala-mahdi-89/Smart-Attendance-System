@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import client from '../api/client';
 import { connectSocket, disconnectSocket, getSocket } from '../api/socket';
 import { useNavigate } from 'react-router-dom';
-import { Html5QrcodeScanner } from 'html5-qrcode';
+import { Html5Qrcode } from 'html5-qrcode';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import Button from '../components/ui/Button';
 import Icon from '../components/ui/Icon';
@@ -76,6 +76,9 @@ export default function DoctorDashboard() {
 
   const [showScanner, setShowScanner] = useState(false);
   const [scanResult, setScanResult] = useState(null);
+  // 'environment' = back/rear camera, 'user' = front/selfie camera
+  const [facing, setFacing] = useState('environment');
+  const [canSwitchCamera, setCanSwitchCamera] = useState(false);
   const [shortId, setShortId] = useState('');
   const [manualResult, setManualResult] = useState(null);
 
@@ -150,49 +153,85 @@ export default function DoctorDashboard() {
   const scannerRef = useRef(null);
 
   useEffect(() => {
-    if (!showScanner) return;
-    const timeout = setTimeout(() => {
-      const scanner = new Html5QrcodeScanner(
-        'doctor-reader',
-        { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0, facingMode: 'environment' },
-        false
-      );
-      scannerRef.current = scanner;
-      scanner.render(
-        async (decodedText) => {
-          try {
-            await scanner.clear();
-          } catch (e) {
-            console.error(e);
-          }
-          scannerRef.current = null;
-          setShowScanner(false);
-          try {
-            const res = await client.post(
-              `/doctor/sessions/${activeSession.id}/scan-student-qr`,
-              { qr_data: decodedText }
-            );
-            setScanResult({ success: true, message: res.data.message, student: res.data.student });
-            setTimeout(() => setScanResult(null), 3000);
-          } catch (err) {
-            setScanResult({
-              success: false,
-              message: err.response?.data?.message || 'Scan failed',
-            });
-            setTimeout(() => setScanResult(null), 3000);
-          }
-        },
-        () => {}
-      );
-    }, 200);
-    return () => {
-      clearTimeout(timeout);
-      if (scannerRef.current) {
-        scannerRef.current.clear().catch(() => {});
-        scannerRef.current = null;
+    if (!showScanner) return undefined;
+    let disposed = false;
+    let handled = false;
+    let scanner = null;
+
+    const stopScanner = async () => {
+      if (!scanner) return;
+      try { await scanner.stop(); } catch (e) { /* already stopped */ }
+      try { scanner.clear(); } catch (e) { /* ignore */ }
+      scanner = null;
+      scannerRef.current = null;
+    };
+
+    const pickCamera = async (mode) => {
+      // Prefer an explicit device match when labels are available,
+      // otherwise fall back to the facingMode constraint.
+      try {
+        const cameras = await Html5Qrcode.getCameras();
+        if (Array.isArray(cameras) && cameras.length > 0) {
+          setCanSwitchCamera(cameras.length > 1);
+          const back = cameras.find((c) => /back|rear|environment|world|external/i.test(c.label || ''));
+          const front = cameras.find((c) => /front|user|face|self/i.test(c.label || ''));
+          if (mode === 'environment' && back) return { deviceId: back.id };
+          if (mode === 'user' && front) return { deviceId: front.id };
+          if (mode === 'user' && !front && cameras.length > 1) return { deviceId: cameras[0].id };
+          if (mode === 'environment' && !back && cameras.length > 1) return { deviceId: cameras[cameras.length - 1].id };
+        }
+      } catch (e) { /* no camera list; rely on facingMode */ }
+      return { facingMode: mode }; // 'environment' = back camera, 'user' = front camera
+    };
+
+    const start = async () => {
+      try {
+        scanner = new Html5Qrcode('doctor-reader', { verbose: false });
+        scannerRef.current = scanner;
+        const camera = await pickCamera(facing);
+        await scanner.start(
+          camera,
+          { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 },
+          async (decodedText) => {
+            if (handled) return;
+            handled = true;
+            await stopScanner();
+            if (disposed) return;
+            setShowScanner(false);
+            try {
+              const res = await client.post(
+                `/doctor/sessions/${activeSession.id}/scan-student-qr`,
+                { qr_data: decodedText }
+              );
+              setScanResult({ success: true, message: res.data.message, student: res.data.student });
+              setTimeout(() => setScanResult(null), 3000);
+            } catch (err) {
+              setScanResult({
+                success: false,
+                message: err.response?.data?.message || 'Scan failed',
+              });
+              setTimeout(() => setScanResult(null), 3000);
+            }
+          },
+          () => {}
+        );
+      } catch (err) {
+        await stopScanner();
+        if (disposed) return;
+        setScanResult({
+          success: false,
+          message: (lang === 'ar' ? 'تعذّر تشغيل الكاميرا. اسمح بالوصول واختر الكاميرا الخلفية.' : 'Could not start camera. Allow access and choose the back camera.'),
+        });
       }
     };
-  }, [showScanner, activeSession]);
+
+    const timeout = setTimeout(() => { if (!disposed) start(); }, 200);
+    return () => {
+      disposed = true;
+      clearTimeout(timeout);
+      stopScanner();
+    };
+  }, [showScanner, activeSession, facing, lang]);
 
   useEffect(() => {
     let mounted = true;
@@ -621,6 +660,23 @@ export default function DoctorDashboard() {
                       <div style={{ marginTop: 12 }}>
                         <div className="scanner-shell">
                           <div id="doctor-reader" />
+                        </div>
+                        <div className="row" style={{ gap: 8, marginTop: 10 }}>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            block
+                            icon="refresh"
+                            disabled={!canSwitchCamera}
+                            onClick={() => setFacing((f) => (f === 'environment' ? 'user' : 'environment'))}
+                            title={facing === 'environment' ? 'الكاميرا الخلفية / back camera' : 'الكاميرا الأمامية / front camera'}
+                          >
+                            {facing === 'environment'
+                              ? (lang === 'ar' ? 'الكاميرا الخلفية' : 'Back camera')
+                              : (lang === 'ar' ? 'الكاميرا الأمامية' : 'Front camera')}
+                            {' · '}
+                            {lang === 'ar' ? 'تبديل' : 'Switch'}
+                          </Button>
                         </div>
                         <Button
                           variant="danger"
