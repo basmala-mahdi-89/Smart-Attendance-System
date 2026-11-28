@@ -174,7 +174,7 @@ export default function StudentScan() {
           </div>
 
           <div className="camera-actions">
-            <Button variant="primary" icon="camera" onClick={openCamera} disabled={cameraOn}>
+            <Button variant="secondary" icon="camera" onClick={openCamera} disabled={cameraOn}>
               {lang === 'ar' ? 'فتح الكاميرا' : 'Open camera'}
             </Button>
             <Button variant="secondary" icon="x" onClick={closeCamera} disabled={!cameraOn}>

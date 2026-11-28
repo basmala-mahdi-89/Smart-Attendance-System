@@ -4945,3 +4945,15 @@ html[dir='rtl'] .feed__item--points .point-actions { margin-left: 0; margin-righ
 /* Required-field marker */
 .field__req { color: var(--danger); }
 [data-theme='dark'] .field__req { color: #ff9ba1; }
+
+/* Dark scanner page: no blue surfaces or blue library links */
+[data-theme='dark'] .scan-card .scanner-shell { background: #0a0a0c; border-color: var(--line); }
+[data-theme='dark'] .scan-card .scanner-shell.is-live {
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.06), 0 24px 46px -32px rgba(0, 0, 0, 0.9);
+}
+[data-theme='dark'] #reader a,
+[data-theme='dark'] #doctor-reader a,
+[data-theme='dark'] #reader button,
+[data-theme='dark'] #doctor-reader button {
+  color: var(--text-soft) !important;
+}
