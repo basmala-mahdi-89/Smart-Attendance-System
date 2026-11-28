@@ -4948,6 +4948,11 @@ html[dir='rtl'] .feed__item--points .point-actions { margin-left: 0; margin-righ
 
 /* Dark scanner page: no blue surfaces or blue library links */
 [data-theme='dark'] .scan-card .scanner-shell { background: #0a0a0c; border-color: var(--line); }
+[data-theme='dark'] .scanner-idle {
+  background:
+    radial-gradient(420px 220px at 50% 0%, rgba(255, 255, 255, 0.04), transparent 72%),
+    #08080a;
+}
 [data-theme='dark'] .scan-card .scanner-shell.is-live {
   box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.06), 0 24px 46px -32px rgba(0, 0, 0, 0.9);
 }
