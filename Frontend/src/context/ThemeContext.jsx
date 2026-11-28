@@ -8,7 +8,7 @@ const ThemeContext = createContext({
 });
 
 const THEME_KEY = 'theme';
-const THEME_COLOR = { light: '#162661', dark: '#0b1020' };
+const THEME_COLOR = { light: '#162661', dark: '#08080a' };
 
 const readStoredTheme = () => {
   try {

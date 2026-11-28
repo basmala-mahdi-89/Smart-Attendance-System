@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Logo from '../ui/Logo';
 import Icon from '../ui/Icon';
+import LiveClock from '../ui/LiveClock';
 import { useLanguage } from '../../context/LanguageContext';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -359,8 +360,7 @@ export default function DashboardLayout({
             <Icon name="x" size={18} />
           </button>
         </div>
-
-        {term && (
+{term && (
           <div className="sidebar__term">
             <Icon name="calendar" size={15} />
             {ar ? 'الفصل الدراسي النشط' : 'Active term'}
@@ -447,6 +447,7 @@ export default function DashboardLayout({
           <div className="topbar__spacer" />
           <div className="topbar__actions">
             {actions}
+            <LiveClock className="topbar__clock" />
             <button
               type="button"
               className="btn btn--icon btn--ghost theme-toggle"
@@ -515,7 +516,7 @@ export default function DashboardLayout({
               {ar ? 'جميع الحقوق محفوظة' : 'All rights reserved'} ·{' '}
               <strong className="app-footer__brand">89</strong>🎈
             </span>
-          </footer>
+            </footer>
         </main>
       </div>
     </div>

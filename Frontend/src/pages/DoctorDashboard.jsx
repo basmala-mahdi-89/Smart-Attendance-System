@@ -1036,7 +1036,7 @@ export default function DoctorDashboard() {
         </div>
       )}
     {showAttendees && (
-      <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#fff', overflow: 'auto', padding: 24 }} onClick={() => setShowAttendees(false)}>
+      <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'var(--surface)', color: 'var(--text)', overflow: 'auto', padding: 24 }} onClick={() => setShowAttendees(false)}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }} onClick={(e) => e.stopPropagation()}>
           <h2>{lang === 'ar' ? `الحضور — ${selectedHistorySession?.course_name || `الجلسة ${selectedHistorySession?.id}`}` : `Attendees — ${selectedHistorySession?.course_name || `Session ${selectedHistorySession?.id}`}`}</h2>
           {attendees.length === 0 ? (
@@ -1044,7 +1044,7 @@ export default function DoctorDashboard() {
           ) : (
             <ul className="stack" style={{ gap: 6, maxHeight: 500, overflow: 'auto', minWidth: 320 }}>
               {attendees.map((a) => (
-                <li key={a.attendance_id || a.id} className="row" style={{ justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #eee' }}>
+                <li key={a.attendance_id || a.id} className="row" style={{ justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--line)' }}>
                   <div>
                     <div style={{ fontSize: '1.15rem', fontWeight: 700 }}>{lang === 'ar' && a.full_name_ar ? a.full_name_ar : a.full_name}</div>
                     <div className="muted-cell" style={{ fontSize: '0.9rem' }}>

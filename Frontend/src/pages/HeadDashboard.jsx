@@ -1270,7 +1270,7 @@ export default function HeadDashboard() {
       )}
 
       {showCourseStudents && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#fff', overflow: 'auto', padding: 24 }} onClick={() => setShowCourseStudents(false)}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'var(--surface)', color: 'var(--text)', overflow: 'auto', padding: 24 }} onClick={() => setShowCourseStudents(false)}>
           <div style={{ maxWidth: 1200, margin: '0 auto' }} onClick={(e) => e.stopPropagation()}>
             <h2>{lang === 'ar' ? `الطلاب المسجلون — ${selectedCourse?.course_code}` : `Enrolled students — ${selectedCourse?.course_code}`}</h2>
             {courseStudents.length === 0 ? (
@@ -1278,7 +1278,7 @@ export default function HeadDashboard() {
             ) : (
               <ul className="stack" style={{ gap: 6, maxHeight: 500, overflow: 'auto', minWidth: 320 }}>
                 {courseStudents.map((s) => (
-                  <li key={s.id} className="row" style={{ justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #eee' }}>
+                  <li key={s.id} className="row" style={{ justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--line)' }}>
                     <div>
                       <div style={{ fontSize: '1.15rem', fontWeight: 700 }}>{lang === 'ar' && s.full_name_ar ? s.full_name_ar : s.full_name}</div>
                       <div className="muted-cell" style={{ fontSize: '0.9rem' }}>{lang === 'ar' ? `السنة ${s.academic_year}` : `Year ${s.academic_year}`} · {s.national_id}</div>
@@ -1296,7 +1296,7 @@ export default function HeadDashboard() {
       )}
 
       {showSessionAttendees && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#fff', overflow: 'auto', padding: 24 }} onClick={() => setShowSessionAttendees(false)}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'var(--surface)', color: 'var(--text)', overflow: 'auto', padding: 24 }} onClick={() => setShowSessionAttendees(false)}>
           <div style={{ maxWidth: 1200, margin: '0 auto' }} onClick={(e) => e.stopPropagation()}>
             <h2>{lang === 'ar' ? `الحضور — ${selectedSession?.course_name || `الجلسة ${selectedSession?.id}`}` : `Attendees — ${selectedSession?.course_name || `Session ${selectedSession?.id}`}`}</h2>
             {sessionAttendees.length === 0 ? (
@@ -1304,7 +1304,7 @@ export default function HeadDashboard() {
             ) : (
               <ul className="stack" style={{ gap: 6, maxHeight: 500, overflow: 'auto', minWidth: 320 }}>
                 {sessionAttendees.map((a) => (
-                  <li key={a.id} className="row" style={{ justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #eee' }}>
+                  <li key={a.id} className="row" style={{ justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--line)' }}>
                     <div>
                       <div style={{ fontSize: '1.15rem', fontWeight: 700 }}>{lang === 'ar' && a.full_name_ar ? a.full_name_ar : a.full_name}</div>
                       <div className="muted-cell" style={{ fontSize: '0.9rem' }}>
