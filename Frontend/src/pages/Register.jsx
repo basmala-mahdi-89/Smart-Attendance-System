@@ -21,6 +21,7 @@ export default function Register() {
   const { lang } = useLanguage();
   const [formData, setFormData] = useState({
     national_id: '',
+    university_id: '',
     full_name: '',
     full_name_ar: '',
     email: '',
@@ -158,6 +159,14 @@ export default function Register() {
               maxLength={14}
               inputMode="numeric"
               required
+            />
+            <Input
+              label={lang === 'ar' ? 'كود الطالب الجامعي' : 'University ID / student code'}
+              icon="graduation-cap"
+              placeholder={lang === 'ar' ? 'مثال: 2530604' : 'e.g. 2530604'}
+              value={formData.university_id}
+              onChange={set('university_id')}
+              maxLength={20}
             />
             <Input
               label={lang === 'ar' ? 'الاسم الكامل' : 'Full English Name'}

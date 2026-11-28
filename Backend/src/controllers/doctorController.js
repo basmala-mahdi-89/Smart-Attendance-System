@@ -57,6 +57,7 @@ exports.scanStudentPersonalQR = async (req, res) => {
         session_id: parseInt(session_id), 
         student_id: student.id, 
         full_name: student.full_name, 
+        university_id: student.university_id || null,
         method: 'qr_scan', 
         attendance_id: result.rows[0].id,
         at: new Date().toISOString() 
@@ -129,7 +130,7 @@ exports.getSessionAttendanceList = async (req, res) => {
 
     const result = await pool.query(
       `SELECT a.id AS attendance_id, a.student_id, a.method, a.created_at,
-              s.full_name, s.full_name_ar, s.national_id, s.email, s.academic_year
+              s.full_name, s.full_name_ar, s.national_id, s.university_id, s.email, s.academic_year
        FROM attendance a
        JOIN students s ON a.student_id = s.id
        WHERE a.session_id = $1
@@ -313,7 +314,7 @@ exports.getSessionAttendance = async (req, res) => {
     if (check.rows.length === 0) return res.status(404).json({ message: 'Session not found' });
 
     const result = await pool.query(
-      `SELECT a.id, a.student_id, a.method, a.created_at, s.full_name, s.full_name_ar, s.national_id, s.email, s.academic_year, m.name AS major_name
+      `SELECT a.id, a.student_id, a.method, a.created_at, s.full_name, s.full_name_ar, s.national_id, s.university_id, s.email, s.academic_year, m.name AS major_name
        FROM attendance a JOIN students s ON a.student_id = s.id LEFT JOIN majors m ON s.major_id = m.id WHERE a.session_id = $1 ORDER BY a.created_at DESC`,
       [session_id]
     );
@@ -393,6 +394,7 @@ exports.manualScan = async (req, res) => {
         session_id: parseInt(session_id), 
         student_id: student.id, 
         full_name: student.full_name, 
+        university_id: student.university_id || null,
         method: 'manual', 
         attendance_id: result.rows[0].id,
         at: new Date().toISOString() 
@@ -449,6 +451,7 @@ exports.manualAdd = async (req, res) => {
         session_id: parseInt(session_id), 
         student_id: student.id, 
         full_name: student.full_name, 
+        university_id: student.university_id || null,
         method: 'manual', 
         attendance_id: result.rows[0].id,
         at: new Date().toISOString() 

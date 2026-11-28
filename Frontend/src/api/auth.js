@@ -1,8 +1,9 @@
 import client from './client';
 
-export const login = async (national_id, password, device_fingerprint = null) => {
+export const login = async (national_id, password, device_fingerprint = null, university_id = '') => {
   const body = { national_id, password };
   if (device_fingerprint) body.device_fingerprint = device_fingerprint;
+  if (university_id) body.university_id = university_id;
 
   const { data } = await client.post('/auth/login', body);
   return data;

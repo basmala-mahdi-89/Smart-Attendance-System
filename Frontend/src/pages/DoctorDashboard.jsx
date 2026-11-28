@@ -750,8 +750,8 @@ export default function DoctorDashboard() {
                             <div style={{ minWidth: 0 }}>
                               <b>{lang === 'ar' && u.full_name_ar ? u.full_name_ar : u.full_name}</b>
                               <span>
-                                {u.national_id || attendanceList.find((x) => x.student_id === u.student_id)?.national_id || ''}
-                                {u.national_id || attendanceList.find((x) => x.student_id === u.student_id)?.national_id ? ' · ' : ''}
+                                {u.university_id || attendanceList.find((x) => x.student_id === u.student_id)?.university_id || u.national_id || attendanceList.find((x) => x.student_id === u.student_id)?.national_id || ''}
+                                {u.university_id || u.national_id || attendanceList.find((x) => x.student_id === u.student_id)?.university_id || attendanceList.find((x) => x.student_id === u.student_id)?.national_id ? ' · ' : ''}
                                 {lang === 'ar' ? 'عبر' : 'via'} {u.method}
                               </span>
                             </div>
@@ -848,7 +848,8 @@ export default function DoctorDashboard() {
                             <div className="person__meta">
                               <b>{lang === 'ar' && a.full_name_ar ? a.full_name_ar : a.full_name}</b>
                               <span>
-                                {lang === 'ar' ? 'رقم الجامعة' : 'National ID'}: {a.national_id || '—'}
+                                {lang === 'ar' ? 'كود الطالب' : 'University ID'}: {a.university_id || '—'} ·{' '}
+                                {lang === 'ar' ? 'البطاقة' : 'National ID'}: {a.national_id || '—'}
                               </span>
                             </div>
                           </div>

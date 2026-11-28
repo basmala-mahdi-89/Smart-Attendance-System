@@ -165,7 +165,7 @@ exports.resetPassword = async (req, res) => {
 // ============================
 exports.login = async (req, res) => {
   try {
-    const { national_id, password } = req.body;
+    const { national_id, password, university_id } = req.body;
 
     if (!national_id || !password) {
       return res.status(400).json({ message: 'National ID and password are required' });
@@ -219,6 +219,24 @@ exports.login = async (req, res) => {
 
     // Student-specific checks
     if (userType === 'student') {
+      const providedUniversityId = university_id ? String(university_id).trim() : '';
+
+      if (providedUniversityId) {
+        if (!/^[A-Za-z0-9-]{3,20}$/.test(providedUniversityId)) {
+          return res.status(400).json({ message: 'Invalid university ID (3-20 letters/digits)' });
+        }
+        if (user.university_id && String(user.university_id) !== providedUniversityId) {
+          return res
+            .status(403)
+            .json({ message: 'University ID does not match this account. Check the number and try again.' });
+        }
+        // First time entering it on login: save it on the student record.
+        if (!user.university_id) {
+          await pool.query(`UPDATE students SET university_id = $1 WHERE id = $2`, [providedUniversityId, user.id]);
+          user.university_id = providedUniversityId;
+        }
+      }
+
       if (user.status === 'pending') {
         return res.status(403).json({ message: 'Your account is pending approval by the Head of Department.' });
       }
@@ -264,6 +282,7 @@ exports.login = async (req, res) => {
       role: userType === 'staff' ? user.role : 'student',
       type: userType,
       national_id: user.national_id,
+      university_id: userType === 'student' ? user.university_id || null : null,
       major_id: user.major_id || null,
       major_name: user.major_name || null,
       status: userType === 'staff' ? 'active' : user.status,
@@ -321,7 +340,7 @@ exports.me = async (req, res) => {
       );
     } else {
       result = await pool.query(
-        `SELECT s.id, s.full_name, s.full_name_ar, s.email, s.national_id, s.phone, s.academic_year,
+        `SELECT s.id, s.full_name, s.full_name_ar, s.email, s.national_id, s.university_id, s.phone, s.academic_year,
                 s.major_id, s.status, s.is_verified, s.created_at,
                 m.name AS major_name
            FROM students s

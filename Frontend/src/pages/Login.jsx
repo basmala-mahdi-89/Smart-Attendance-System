@@ -58,6 +58,7 @@ const HINTS = {
 
 export default function Login() {
   const [national_id, setNationalId] = useState('');
+  const [university_id, setUniversityId] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -72,7 +73,12 @@ export default function Login() {
     setLoading(true);
     setError('');
     try {
-      const user = await login(national_id, password, getDeviceFingerprint());
+      const user = await login(
+        national_id,
+        password,
+        getDeviceFingerprint(),
+        role === 'student' ? university_id : ''
+      );
 
       // ⚡ توجيه كل Role للصفحة بتاعته
       if (user.role === 'engineer') {
@@ -168,6 +174,23 @@ export default function Login() {
           autoComplete="current-password"
           required
         />
+
+        {role === 'student' && (
+          <Input
+            label={lang === 'ar' ? 'كود الطالب الجامعي (اختياري)' : 'University ID / student code (optional)'}
+            icon="graduation-cap"
+            placeholder={lang === 'ar' ? 'مثال: 2530604' : 'e.g. 2530604'}
+            value={university_id}
+            onChange={(e) => setUniversityId(e.target.value)}
+            inputMode="text"
+            autoComplete="off"
+            hint={
+              lang === 'ar'
+                ? 'بيظهر للدكتور مع اسمك عند مراجعة الحضور. لو أول مرة، هيُحفظ تلقائياً.'
+                : 'Shown to your doctor with your name in attendance. Saved automatically on first login.'
+            }
+          />
+        )}
 
         <div className="auth__forgot">
           <Link to="/forgot-password">{ar ? 'نسيت كلمة المرور؟' : 'Forgot password?'}</Link>

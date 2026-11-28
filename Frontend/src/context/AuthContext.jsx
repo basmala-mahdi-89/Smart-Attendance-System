@@ -56,8 +56,8 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
-  const login = async (national_id, password, device_fingerprint = null) => {
-    const data = await authApi.login(national_id, password, device_fingerprint);
+  const login = async (national_id, password, device_fingerprint = null, university_id = '') => {
+    const data = await authApi.login(national_id, password, device_fingerprint, university_id);
     localStorage.setItem('token', data.token);
     localStorage.setItem('user', JSON.stringify(data.user));
     setUser(data.user);

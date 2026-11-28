@@ -25,6 +25,7 @@ exports.register = async (req, res) => {
       academic_year,
       major_id,
       major_name,
+      university_id,
       password,
     } = req.body;
 
@@ -39,6 +40,10 @@ exports.register = async (req, res) => {
     }
     if (password.length < 8) {
       return res.status(400).json({ message: 'Password must be at least 8 characters' });
+    }
+    // University ID is optional at registration but must look like a student code.
+    if (university_id && !/^[A-Za-z0-9-]{3,20}$/.test(String(university_id).trim())) {
+      return res.status(400).json({ message: 'Invalid university ID (3-20 letters/digits)' });
     }
 
     const dup = await pool.query(`SELECT id FROM students WHERE national_id = $1 OR email = $2`, [national_id, email]);
@@ -61,9 +66,9 @@ exports.register = async (req, res) => {
     const verifyToken = crypto.randomBytes(32).toString('hex');
 
     const result = await pool.query(
-      `INSERT INTO students (national_id, full_name, full_name_ar, email, phone, academic_year, major_id, password_hash, personal_qr)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id, full_name, full_name_ar, email, status`,
-      [national_id, full_name, full_name_ar || null, email, phone, academic_year, resolvedMajorId, password_hash, verifyToken]
+      `INSERT INTO students (national_id, university_id, full_name, full_name_ar, email, phone, academic_year, major_id, password_hash, personal_qr)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id, university_id, full_name, full_name_ar, email, status`,
+      [national_id, university_id ? String(university_id).trim() : null, full_name, full_name_ar || null, email, phone, academic_year, resolvedMajorId, password_hash, verifyToken]
     );
 
     const verifyUrl = `${process.env.FRONTEND_URL}/verify-email/${verifyToken}`;
@@ -285,7 +290,7 @@ exports.getMyCourses = async (req, res) => {
 exports.getMyProfile = async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT s.id, s.national_id, s.full_name, s.email, s.phone, s.academic_year, s.status, s.created_at, m.name AS major_name
+      `SELECT s.id, s.national_id, s.university_id, s.full_name, s.email, s.phone, s.academic_year, s.status, s.created_at, m.name AS major_name
        FROM students s LEFT JOIN majors m ON s.major_id = m.id WHERE s.id = $1`, [req.user.id]
     );
     res.json(result.rows[0]);
