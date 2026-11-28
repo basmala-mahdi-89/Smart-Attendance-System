@@ -189,7 +189,7 @@ export default function StudentDashboard() {
           <Button variant="secondary" size="sm" icon="scan" onClick={() => navigate('/student/scan')}>
             {lang === 'ar' ? 'مسح رمز QR' : 'Scan QR'}
           </Button>
-          <Button size="sm" icon="qr" onClick={() => navigate('/student/personal-qr')}>
+          <Button variant="secondary" size="sm" icon="qr" onClick={() => navigate('/student/personal-qr')}>
             {lang === 'ar' ? 'رمزي الشخصي' : 'My QR'}
           </Button>
         </>
