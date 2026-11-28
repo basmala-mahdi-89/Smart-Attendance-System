@@ -9,6 +9,7 @@ import Icon from '../components/ui/Icon';
 import { Badge, Loader } from '../components/ui/Feedback';
 import { ProgressBar } from '../components/ui/Motion';
 import { useLanguage } from '../context/LanguageContext';
+import { useTheme } from '../context/ThemeContext';
 
 function base32Decode(base32) {
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
@@ -63,6 +64,7 @@ export default function PersonalQR() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { lang } = useLanguage();
+  const { isDark } = useTheme();
   const [secret, setSecret] = useState('');
   const [studentId, setStudentId] = useState('');
   const [token, setToken] = useState('');
@@ -172,7 +174,13 @@ export default function PersonalQR() {
 
             <div className="qr-card__frame">
               {qrData ? (
-                <QRCodeSVG value={qrData} size={248} />
+                <QRCodeSVG
+                  value={qrData}
+                  size={248}
+                  bgColor={isDark ? '#08080a' : '#ffffff'}
+                  fgColor={isDark ? '#ffffff' : '#000000'}
+                  marginSize={2}
+                />
               ) : (
                 <div style={{ width: 248, height: 248 }} />
               )}
