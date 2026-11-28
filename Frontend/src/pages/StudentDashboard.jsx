@@ -85,8 +85,12 @@ export default function StudentDashboard() {
         client.get('/students/me/warnings'),
         client.get('/students/me/points'),
       ]);
-      setCourses(coursesRes.data.courses);
-      setCurrentTerm(coursesRes.data.current_term);
+      // ⚡ Hide courses from other terms (e.g. term 1 while current term is 2).
+      // No backend change needed: the API already returns course.term + current_term.
+      const activeTerm = String(coursesRes.data.current_term || '1');
+      const allCourses = Array.isArray(coursesRes.data.courses) ? coursesRes.data.courses : [];
+      setCourses(allCourses.filter((c) => String(c.term || '1') === activeTerm));
+      setCurrentTerm(activeTerm);
       setAttendance(attendanceRes.data);
       setWarnings(warningsRes.data);
       setPointsData(pointsRes.data || { entries: [], totals: { bonus: 0, penalty: 0, net: 0 } });

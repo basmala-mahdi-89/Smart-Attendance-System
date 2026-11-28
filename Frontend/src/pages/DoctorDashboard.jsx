@@ -243,8 +243,10 @@ export default function DoctorDashboard() {
           client.get('/doctor/sessions/history'),
         ]);
         if (mounted) {
-          setCourses(coursesRes.data.courses);
-          setCurrentTerm(coursesRes.data.current_term);
+          const activeTerm = String(coursesRes.data.current_term || '1');
+          const allCourses = Array.isArray(coursesRes.data.courses) ? coursesRes.data.courses : [];
+          setCourses(allCourses.filter((c) => String(c.term || '1') === activeTerm));
+          setCurrentTerm(activeTerm);
           setSessionHistory(historyRes.data);
         }
         if (sessionData.data.session && mounted) {
@@ -747,7 +749,11 @@ export default function DoctorDashboard() {
                             <span className="feed__avatar">{initials(lang === 'ar' && u.full_name_ar ? u.full_name_ar : u.full_name)}</span>
                             <div style={{ minWidth: 0 }}>
                               <b>{lang === 'ar' && u.full_name_ar ? u.full_name_ar : u.full_name}</b>
-                              <span>{lang === 'ar' ? 'عبر' : 'via'} {u.method}</span>
+                              <span>
+                                {u.national_id || attendanceList.find((x) => x.student_id === u.student_id)?.national_id || ''}
+                                {u.national_id || attendanceList.find((x) => x.student_id === u.student_id)?.national_id ? ' · ' : ''}
+                                {lang === 'ar' ? 'عبر' : 'via'} {u.method}
+                              </span>
                             </div>
                             <time>{new Date(u.at).toLocaleTimeString()}</time>
                           </div>
@@ -841,7 +847,9 @@ export default function DoctorDashboard() {
                             </span>
                             <div className="person__meta">
                               <b>{lang === 'ar' && a.full_name_ar ? a.full_name_ar : a.full_name}</b>
-                              <span>ID #{a.student_id}</span>
+                              <span>
+                                {lang === 'ar' ? 'رقم الجامعة' : 'National ID'}: {a.national_id || '—'}
+                              </span>
                             </div>
                           </div>
                         </td>
