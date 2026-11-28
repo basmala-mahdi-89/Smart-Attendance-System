@@ -6,7 +6,7 @@ function FieldShell({ id, label, hint, error, required, children }) {
     <div className={`field ${error ? 'field--error' : ''}`.trim()}>
       {label && (
         <label className="field__label" htmlFor={id}>
-          {label} {required && <span>*</span>}
+          {label} {required && <span className="field__req">*</span>}
         </label>
       )}
       {children}
